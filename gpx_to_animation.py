@@ -1,6 +1,7 @@
 import math
 import gpxpy
 import gpxpy.gpx
+import requests
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371  # radius of the Earth in kilometers
@@ -30,14 +31,25 @@ with open('testactivity.gpx', 'r') as gpx_file:
 
     print('Max Latitude: {0}, Min Latitude: {1}, Max Longitude: {2}, Min Longitude: {3}'.format(
         max_latitude, min_latitude, max_longitude, min_longitude))
-    avg_latitude = (max_latitude-min_latitude)/2
-    avg_longitude = (max_longitude-min_longitude)/2
+    avg_latitude = (max_latitude+min_latitude)/2
+    avg_longitude = (max_longitude+min_longitude)/2
     NS_distance = haversine(max_latitude, min_longitude, min_latitude, min_longitude)
     EW_distance = haversine(min_latitude, max_longitude, min_latitude, min_longitude)
     NS_scale = NS_distance / (max_latitude-min_latitude) # km/degree
     EW_scale = EW_distance / (max_longitude-min_longitude) # km/degree
 
     print('North-South distance: {0} km, East-West distance: {1} km'.format(NS_distance, EW_distance))
+
+
+
+from get_map_stamen import get_map_stamen
+
+# Example usage:
+get_map_stamen(avg_latitude, avg_longitude, 5)
+
+# Todo: For every timeframe: draw arrow att lat,lon. Store images in folder. 
+
+
 
 
 
