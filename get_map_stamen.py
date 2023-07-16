@@ -21,20 +21,6 @@ def get_tile_image(x, y, zoom, maptype='terrain'):
         print(f'Unable to download map image for tile ({x}, {y}, {zoom})')
         return None
 
-def get_map_stamen(lat, lon, scale_km, maptype='terrain'):
-    zoom = km_to_zoom_level(scale_km, lat)
-    x_center, y_center = lat_lon_to_tile_coords(lat, lon, zoom)
-    img_size = get_tile_image(x_center, y_center, zoom, maptype).size
-    img_width, img_height = img_size[0], img_size[1]
-    img_stitched = Image.new('RGB', (img_width * 3, img_height * 3))
-
-    for dx in [-1, 0, 1]:
-        for dy in [-1, 0, 1]:
-            img = get_tile_image(x_center + dx, y_center + dy, zoom, maptype)
-            if img is not None:
-                img_stitched.paste(img, ((dx + 1) * img_width, (dy + 1) * img_height))
-
-    img_stitched.save('map_stitched.png')
 
 def km_to_zoom_level(km, lat):
     # Estimate the zoom level based on scale at the equator
@@ -49,6 +35,36 @@ def km_to_zoom_level(km, lat):
     print(km)
 
     return zoom_level
+
+
+def get_map_stamen(lat_min, lat_max, lon_min, lon_max, scale_km, maptype='terrain'):
+    zoom = km_to_zoom_level(scale_km, lat_min)
+    print(zoom)
+    x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
+    x_max, y_min = lat_lon_to_tile_coords(lat_max, lon_max, zoom)
+    print(x_min,y_min)
+    print(x_max,y_max)
+    
+    # Calculate the total number of tiles in x and y directions
+    num_tiles_x = x_max - x_min + 3
+    num_tiles_y = y_max - y_min + 3
+    print(num_tiles_x,num_tiles_y)
+    
+    # Create a new image big enough to hold all the tiles
+    width, height = num_tiles_x * 256, num_tiles_y * 256
+    map_img = Image.new('RGB', (width, height))
+
+    # Fetch each tile and paste it into the map image
+    for x in range(x_min - 1, x_max + 2):
+        for y in range(y_min - 1, y_max + 2):
+            tile_img = get_tile_image(x,y,zoom)
+            if tile_img is not None:  # Only paste if the image was successfully downloaded
+                map_img.paste(tile_img, ((x - x_min + 1) * 256, (y - y_min + 1) * 256))
+
+    # Save the stitched map image
+    map_img.save('map_stitched.png')
+
+
 
 # To do: center around lat,lon and crop image.
 # Add km scale on right side

@@ -45,7 +45,7 @@ with open('testactivity.gpx', 'r') as gpx_file:
 from get_map_stamen import get_map_stamen
 
 # Example usage:
-get_map_stamen(avg_latitude, avg_longitude, 5)
+get_map_stamen(min_latitude, max_latitude, min_longitude, max_longitude, 5)
 
 # Todo: For every timeframe: draw arrow att lat,lon. Store images in folder. 
 
