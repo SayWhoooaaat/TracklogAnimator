@@ -14,8 +14,13 @@ def draw_path(map_data, map_image, gpx_points):
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
     
+    first_timestamp, first_latitude, first_longitude, first_elevation = gpx_points[0]
+    last_x = ((first_longitude + 180.0) * n / 360.0 - xmin) * cell_size
+    last_y = ((1.0 - math.log(math.tan(math.radians(first_latitude)) + (1 / math.cos(math.radians(first_latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
+
+    
     # Loop through the track points to draw them on the map
-    for point in gpx_points:
+    for point in gpx_points[1:]:
         timestamp, latitude, longitude, elevation = point  # Extract information from each point
         
         # Convert latitude and longitude to x and y coordinates
@@ -24,7 +29,8 @@ def draw_path(map_data, map_image, gpx_points):
         y = ((1.0 - math.log(math.tan(math.radians(latitude)) + (1 / math.cos(math.radians(latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
 
         # Draw the point on the map image
-        draw.point((x, y), fill='red')
+        draw.line((last_x, last_y, x, y), fill='red')
+        last_x, last_y = x, y
     
     # Save or return the new image
     path_image.save('map_with_path.png')  # Save the image with the path

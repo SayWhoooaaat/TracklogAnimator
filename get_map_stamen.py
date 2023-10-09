@@ -78,6 +78,4 @@ def get_map_stamen(gpx_data, zoom):
 
 
 
-# To do: center around lat,lon and crop image.
-# Add km scale on right side
 
