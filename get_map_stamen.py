@@ -43,20 +43,19 @@ def lat_lon_to_tile_coords(lat_deg, lon_deg, zoom):
     return int(x_tile), int(y_tile)
 
 
-def get_map_stamen(gpx_data, zoom):
-    lat_min = gpx_data['min_latitude']
-    lat_max = gpx_data['max_latitude']
-    lon_min = gpx_data['min_longitude']
-    lon_max = gpx_data['max_longitude']
+def get_map_stamen(track_metadata, zoom):
+    cell_size = 256
+    lat_min = track_metadata['min_latitude']
+    lat_max = track_metadata['max_latitude']
+    lon_min = track_metadata['min_longitude']
+    lon_max = track_metadata['max_longitude']
     x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
     x_max, y_min = lat_lon_to_tile_coords(lat_max, lon_max, zoom)
-    print(x_min,y_min)
-    print(x_max,y_max)
     
     # Calculate the total number of tiles in x and y directions
     num_tiles_x = x_max - x_min + 3
     num_tiles_y = y_max - y_min + 3
-    print(num_tiles_x,num_tiles_y)
+    print("tiles are", num_tiles_x, "wide and", num_tiles_y, "tall")
     
     # Create a new image big enough to hold all the tiles
     width, height = num_tiles_x * 256, num_tiles_y * 256
@@ -67,14 +66,14 @@ def get_map_stamen(gpx_data, zoom):
         for y in range(y_min - 1, y_max + 2):
             tile_img = get_tile_image(x,y,zoom)
             if tile_img is not None:  # Only paste if the image was successfully downloaded
-                map_img.paste(tile_img, ((x - x_min + 1) * 256, (y - y_min + 1) * 256))
+                map_img.paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
 
     # Save the stitched map image
     map_img.save('map_stitched.png')
 
-    map_data = [zoom, x_min - 1, y_min - 1]
+    map_metadata = [zoom, x_min - 1, y_min - 1, cell_size]
 
-    return(map_img, map_data)
+    return(map_img, map_metadata)
 
 
 

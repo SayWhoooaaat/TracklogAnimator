@@ -4,8 +4,7 @@ import math
 from PIL import ImageDraw
 
 def animate_path(map_metadata, map_image, track_points):
-    zoom, xmin, ymin = map_metadata
-    cell_size = 256
+    zoom, xmin, ymin, cell_size = map_metadata
     n = 2.0 ** zoom
     fps = 30
 
@@ -17,12 +16,12 @@ def animate_path(map_metadata, map_image, track_points):
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
-    first_timestamp, first_latitude, first_longitude, first_elevation = track_points[0]
+    first_timestamp, first_latitude, first_longitude, *_ = track_points[0]
     last_x = ((first_longitude + 180.0) * n / 360.0 - xmin) * cell_size
     last_y = ((1.0 - math.log(math.tan(math.radians(first_latitude)) + (1 / math.cos(math.radians(first_latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
 
     for point in track_points[2:]:
-        timestamp, latitude, longitude, elevation = point
+        timestamp, latitude, longitude, *_ = point
 
         x = ((longitude + 180.0) * n / 360.0 - xmin) * cell_size
         y = ((1.0 - math.log(math.tan(math.radians(latitude)) + (1 / math.cos(math.radians(latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
