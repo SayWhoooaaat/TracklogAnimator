@@ -4,8 +4,9 @@ import math
 from PIL import ImageDraw
 
 def animate_path(map_metadata, map_image, track_points):
-    zoom, xmin, ymin, cell_size, *_ = map_metadata
-    n = 2.0 ** zoom
+    m_px = map_metadata[0]
+    x0 = map_metadata[1]
+    y0 = map_metadata[2]
     fps = 30
 
     # Initialize video writer
@@ -16,18 +17,16 @@ def animate_path(map_metadata, map_image, track_points):
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
-    first_timestamp, first_latitude, first_longitude, *_ = track_points[0]
-    last_x = ((first_longitude + 180.0) * n / 360.0 - xmin) * cell_size
-    last_y = ((1.0 - math.log(math.tan(math.radians(first_latitude)) + (1 / math.cos(math.radians(first_latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
-
-    for point in track_points[2:]:
-        timestamp, latitude, longitude, *_ = point
-
-        x = ((longitude + 180.0) * n / 360.0 - xmin) * cell_size
-        y = ((1.0 - math.log(math.tan(math.radians(latitude)) + (1 / math.cos(math.radians(latitude)))) / math.pi) / 2.0 * n - ymin) * cell_size
+    for i in range(0, len(track_points)):
+        x_meters = track_points[i][4]
+        y_meters = track_points[i][5]
+        
+        x = x0 + x_meters / m_px
+        y = y0 + y_meters / m_px
 
         # Draws path on image with only path
-        draw.line((last_x, last_y, x, y), fill='red')
+        if i > 0:
+            draw.line((last_x, last_y, x, y), fill='red')
         last_x, last_y = x, y
 
         # Draws dot at the end of path (but doesnt mess with path_image)

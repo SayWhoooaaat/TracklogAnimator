@@ -33,7 +33,7 @@ def parse_gpx(gpx_file):
     for i in range(0, len(track_points)):
         timestamp, latitude, longitude, *_ = track_points[i]
         y = (lat0 - latitude) / 180 * math.pi * radius # Positive is further south
-        x = (longitude - lon0) / 180 * math.pi * math.cos(lon0/180*math.pi) * radius # Pos furth east
+        x = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius # Pos furth east
         track_points[i].append(x)
         track_points[i].append(y)
         if i==0:
