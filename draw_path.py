@@ -11,8 +11,8 @@ def draw_path(map_metadata, map_image, track_points):
     draw = ImageDraw.Draw(path_image)
 
     for i in range(0, len(track_points)):
-        x_meters = track_points[i][4]
-        y_meters = track_points[i][5]
+        x_meters = track_points[i][1]
+        y_meters = track_points[i][2]
         
         x = x0 + x_meters / m_px
         y = y0 + y_meters / m_px

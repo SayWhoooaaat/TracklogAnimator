@@ -7,7 +7,7 @@ def animate_path(map_metadata, map_image, track_points):
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
-    fps = 30
+    fps = 30 # Find dt and deduct fps from speedup and dt!
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     # Initialize video writer
@@ -19,9 +19,9 @@ def animate_path(map_metadata, map_image, track_points):
     draw = ImageDraw.Draw(path_image)
 
     for i in range(0, len(track_points)):
-        x_meters = track_points[i][4]
-        y_meters = track_points[i][5]
-        phi = track_points[i][7]
+        x_meters = track_points[i][1]
+        y_meters = track_points[i][2]
+        phi = track_points[i][5]
         
         x = x0 + x_meters / m_px
         y = y0 + y_meters / m_px

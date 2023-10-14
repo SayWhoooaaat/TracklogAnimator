@@ -1,6 +1,7 @@
 import gpxpy
 import math
 from datetime import datetime
+from datetime import timedelta
 
 def parse_gpx(gpx_file):
     gpx = gpxpy.parse(gpx_file)
@@ -55,6 +56,32 @@ def parse_gpx(gpx_file):
         track_points[i].append(v)
         track_points[i].append(phi)
 
-    # Maybe smooth out velocities(?)
+    # Making contant interval matrix
+    track_points2 = []
+    frame_duration = 0.5 # seconds
+    current_time = track_points[0][0]
+    i = 0
+    while i < len(track_points) - 1:
+        
+        t1, lat1, lon1, ele1, x1, y1, v1, phi1 = track_points[i]
+        t2, lat2, lon2, ele2, x2, y2, v2, phi2 = track_points[i + 1]
+        fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
+
+        x = x1 + fraction * (x2 - x1)
+        y = y1 + fraction * (y2 - y1)
+        ele = ele1 + fraction * (ele2 - ele1)
+        v = v1 + fraction * (v2 - v1)
+        phi = phi1 + fraction * (phi2 - phi1)
+
+        # append values to new array
+        track_points2.append([current_time, x, y, ele, v, phi])
     
-    return track_points, track_metadata
+        # Move to the next recorded point if the current_time has passed it
+        if current_time >= t2:
+            i += 1
+
+        # Increment the "current time" by the frame duration
+        current_time += timedelta(seconds=frame_duration)
+
+    
+    return track_points2, track_metadata
