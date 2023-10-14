@@ -71,7 +71,14 @@ def get_map_stamen(track_metadata, zoom):
     # Save the stitched map image
     map_img.save('map_stitched.png')
 
-    map_metadata = [zoom, x_min - 1, y_min - 1, cell_size]
+    # Calculate map_metadata
+    radius = 6371000.0
+    meters_per_degree = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi)
+    lon_0 = 360 * (x_min-1) / 2**zoom - 180
+    a_b = 2 * (y_min-1) / (2**zoom)
+    lat_0 = 180 / math.pi * math.acos(2 / (math.exp(math.pi - math.pi * a_b) + math.exp(math.pi * a_b - math.pi)))
+
+    map_metadata = [zoom, x_min - 1, y_min - 1, cell_size, meters_per_degree, lon_0, lat_0]
 
     return(map_img, map_metadata)
 

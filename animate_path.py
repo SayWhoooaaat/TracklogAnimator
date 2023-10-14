@@ -4,7 +4,7 @@ import math
 from PIL import ImageDraw
 
 def animate_path(map_metadata, map_image, track_points):
-    zoom, xmin, ymin, cell_size = map_metadata
+    zoom, xmin, ymin, cell_size, *_ = map_metadata
     n = 2.0 ** zoom
     fps = 30
 

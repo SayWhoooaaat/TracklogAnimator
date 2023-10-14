@@ -6,6 +6,7 @@ def draw_path(map_metadata, map_image, track_points):
     xmin = map_metadata[1]
     ymin = map_metadata[2]
     cell_size = map_metadata[3]
+    m_px = map_metadata[4]
     n = 2.0 ** zoom
 
     print("zoom", zoom, ",", n, "by", n, "cells on map and cell origin:", xmin, ymin, )
