@@ -8,6 +8,7 @@ def animate_path(map_metadata, map_image, track_points):
     x0 = map_metadata[1]
     y0 = map_metadata[2]
     fps = 30
+    arrow = [(-8,-6), (8,0), (-8,6)]
 
     # Initialize video writer
     height, width = map_image.size
@@ -20,6 +21,7 @@ def animate_path(map_metadata, map_image, track_points):
     for i in range(0, len(track_points)):
         x_meters = track_points[i][4]
         y_meters = track_points[i][5]
+        phi = track_points[i][7]
         
         x = x0 + x_meters / m_px
         y = y0 + y_meters / m_px
@@ -29,13 +31,14 @@ def animate_path(map_metadata, map_image, track_points):
             draw.line((last_x, last_y, x, y), fill='red')
         last_x, last_y = x, y
 
-        # Draws dot at the end of path (but doesnt mess with path_image)
-        image_with_dot = path_image.copy()
-        draw2 = ImageDraw.Draw(image_with_dot)
-        draw2.ellipse((x - 4, y - 4, x + 4, y + 4), fill='red', outline ='red')
+        # Draws arrow at the end of path (but doesnt mess with path_image)
+        image_with_arrow = path_image.copy()
+        draw2 = ImageDraw.Draw(image_with_arrow)
+        angled_arrow = [(x + px * math.cos(phi) - py * math.sin(phi), y + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
+        draw2.polygon(angled_arrow, fill='red', outline ='black')
 
         # Convert PIL image to NumPy array and write to video
-        frame = np.array(image_with_dot)
+        frame = np.array(image_with_arrow)
         out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
     # Release the video writer

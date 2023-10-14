@@ -50,7 +50,7 @@ def parse_gpx(gpx_file):
             if (x == x_prev) & (y == y_prev):
                 phi = track_points[i-1][7] # old angle
             else:
-                phi = math.atan2(y_prev-y,x-x_prev) * 180 / math.pi
+                phi = math.atan2(y-y_prev,x-x_prev)
             
         track_points[i].append(v)
         track_points[i].append(phi)
