@@ -3,11 +3,10 @@ import numpy as np
 import math
 from PIL import ImageDraw
 
-def animate_path(map_metadata, map_image, track_points):
+def animate_path(map_metadata, map_image, track_points, fps):
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
-    fps = 30 # Find dt and deduct fps from speedup and dt!
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     # Initialize video writer
