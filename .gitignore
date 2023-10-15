@@ -2,3 +2,7 @@ env/
 *.mov
 *.mp4
 *.png
+*.igc
+*.gpx
+*.tcx
+*.jpg
