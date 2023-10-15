@@ -1,16 +1,16 @@
 
+track_file = "testactivity.tcx"
 speedup = 50
 fps = 30
 dt = speedup / fps
 
-from parse_gpx import parse_gpx
-track_points, track_metadata = parse_gpx(open('testactivity.gpx', 'r'), dt)
+from parse_file import parse_file
+track_points, track_metadata = parse_file(track_file, dt)
 
 #import csv
 #with open('array_output.csv', 'w', newline='') as f:
 #    writer = csv.writer(f)
 #    writer.writerows(track_points)
-
 
 from get_map_stamen import get_map_stamen
 zoom = 13
