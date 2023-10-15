@@ -5,18 +5,22 @@ import math
 import os
 import time
 from hashlib import md5
+from dotenv import load_dotenv
 
 # Add a cache directory if it doesn't exist
-if not os.path.exists('tile_cache'):
-    os.makedirs('tile_cache')
+if not os.path.exists('tile_cache2'):
+    os.makedirs('tile_cache2')
 
-def get_tile_image(x, y, zoom, maptype='terrain', max_retries=3):
-    base_url = 'http://tile.stamen.com' # Stamen has moved to StadiaMaps..
-    url = f"{base_url}/{maptype}/{zoom}/{x}/{y}.png"
+def get_tile_image(x, y, zoom, max_retries=3):
+    load_dotenv()
+    api_token = os.getenv('MAPBOX_API_TOKEN')  # Get my API key
+    base_url = 'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles'
+    url = f"{base_url}/{zoom}/{x}/{y}?access_token={api_token}"
+    #url = f"{base_url}/{maptype}/{zoom}/{x}/{y}.png"
 
     # Check cache first
     cache_key = md5(url.encode('utf-8')).hexdigest()
-    cache_path = f"tile_cache/{cache_key}.png"
+    cache_path = f"tile_cache2/{cache_key}.png"
     if os.path.exists(cache_path):
         return Image.open(cache_path)
 
@@ -43,8 +47,7 @@ def lat_lon_to_tile_coords(lat_deg, lon_deg, zoom):
     return int(x_tile), int(y_tile)
 
 
-def get_map_stamen(track_metadata, zoom):
-    cell_size = 256
+def get_map_mapbox(track_metadata, zoom):
     lat_min = track_metadata['min_latitude']
     lat_max = track_metadata['max_latitude']
     lon_min = track_metadata['min_longitude']
@@ -58,7 +61,9 @@ def get_map_stamen(track_metadata, zoom):
     print("tiles are", num_tiles_x, "wide and", num_tiles_y, "tall")
     
     # Create a new image big enough to hold all the tiles
-    width, height = num_tiles_x * 256, num_tiles_y * 256
+    tile_img = get_tile_image(x_min,y_min,zoom)
+    cell_size = tile_img.size[0]
+    width, height = num_tiles_x * cell_size, num_tiles_y * cell_size
     map_img = Image.new('RGB', (width, height))
 
     # Fetch each tile and paste it into the map image

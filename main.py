@@ -1,5 +1,5 @@
 
-track_file = "testactivity.tcx"
+track_file = "gpx_loen.gpx"
 speedup = 50
 fps = 30
 dt = speedup / fps
@@ -12,9 +12,9 @@ track_points, track_metadata = parse_file(track_file, dt)
 #    writer = csv.writer(f)
 #    writer.writerows(track_points)
 
-from get_map_stamen import get_map_stamen
-zoom = 13
-map_image, map_metadata = get_map_stamen(track_metadata, zoom)
+from get_map_mapbox import get_map_mapbox
+zoom = 12
+map_image, map_metadata = get_map_mapbox(track_metadata, zoom)
 
 from draw_path import draw_path
 path_image = draw_path(map_metadata, map_image, track_points) # Redundant, but good for testing 
