@@ -2,6 +2,20 @@ import cv2
 import numpy as np
 import math
 from PIL import ImageDraw
+from PIL import ImageFont
+
+def get_ruler_km(map_km):
+    ruler_0 = map_km / 2
+    basis = 10 ** math.floor(math.log10(ruler_0))
+    mantissa = ruler_0 / basis
+    if mantissa > 5:
+        ruler_km = 5 * basis
+    elif mantissa > 2:
+        ruler_km = 2 * basis
+    else:
+        ruler_km = basis
+    return ruler_km
+
 
 def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
     m_px = map_metadata[0]
@@ -12,6 +26,12 @@ def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
     height, width = anim_pixels, anim_pixels
     center_factor = 0.3
     center_radius = center_factor / 2 * min(height,width)
+
+    # Makes and scales ruler
+    ruler_km = get_ruler_km(width * m_px / 1000)
+    ruler_pixels = ruler_km * 1000 / m_px
+    ruler_text = f"{ruler_km} km"
+    font = ImageFont.truetype("arial.ttf", size=14)
 
     # Initialize video writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -48,6 +68,14 @@ def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
             xc = xc + (center_distance - center_radius) * math.cos(beta)
             yc = yc + (center_distance - center_radius) * math.sin(beta)
         cropped_image = image_with_arrow.crop((xc - width/2.0, yc - height/2.0, xc + width/2.0, yc + height/2.0))
+        
+        # Draw ruler on cropped image
+        draw3 = ImageDraw.Draw(cropped_image)
+        draw3.line((width-8, height-14, width-8, height-8), fill='white', width=1)
+        draw3.line((width-8, height-8, width-8-ruler_pixels, height-8), fill='white', width=1)
+        draw3.line((width-8-ruler_pixels, height-8, width-8-ruler_pixels, height-14), fill='white', width=1)
+        text_width, text_height = draw3.textsize(ruler_text, font=font)
+        draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
         # Convert PIL image to NumPy array and write to video
         frame = np.array(cropped_image)
