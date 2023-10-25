@@ -6,6 +6,7 @@ import os
 import time
 from hashlib import md5
 from dotenv import load_dotenv
+import sys
 
 # Add a cache directory if it doesn't exist
 if not os.path.exists('tile_cache2'):
@@ -47,22 +48,35 @@ def lat_lon_to_tile_coords(lat_deg, lon_deg, zoom):
     return int(x_tile), int(y_tile)
 
 
-def get_map_mapbox(track_metadata, zoom):
+def get_map_mapbox(track_metadata, anim_pixels, anim_km):
     lat_min = track_metadata['min_latitude']
     lat_max = track_metadata['max_latitude']
     lon_min = track_metadata['min_longitude']
     lon_max = track_metadata['max_longitude']
+
+    # Calculate zoom
+    tile_img = get_tile_image(2,1,2)
+    cell_size = tile_img.size[0]
+    n = 40075.0 / anim_km * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
+    zoom = round(math.log2(n))
+    n = 2 ** zoom
+    anim_km_actual = 40075.0 / n * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
+    print(f"zoom = {zoom}, n = {round(n,2)}, mapwidth = {round(anim_km_actual,2)}")
+
     x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
     x_max, y_min = lat_lon_to_tile_coords(lat_max, lon_max, zoom)
     
     # Calculate the total number of tiles in x and y directions
     num_tiles_x = x_max - x_min + 3
     num_tiles_y = y_max - y_min + 3
-    print("tiles are", num_tiles_x, "wide and", num_tiles_y, "tall")
+    num_tiles = num_tiles_x * num_tiles_y
+    if num_tiles > 25: # Many tiles!
+        user_input = input(f"Need {num_tiles} tiles. Proceed? (y/n): ")
+        if user_input.lower() != 'y':
+            print("Terminating program.")
+            sys.exit()
     
     # Create a new image big enough to hold all the tiles
-    tile_img = get_tile_image(x_min,y_min,zoom)
-    cell_size = tile_img.size[0]
     width, height = num_tiles_x * cell_size, num_tiles_y * cell_size
     map_img = Image.new('RGB', (width, height))
 
@@ -75,6 +89,7 @@ def get_map_mapbox(track_metadata, zoom):
 
     # Save the stitched map image
     map_img.save('map_stitched.png')
+    print("Saved map")
 
     # Calculate map_metadata
     radius = 6371000.0

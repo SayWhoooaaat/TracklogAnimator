@@ -3,13 +3,13 @@ import numpy as np
 import math
 from PIL import ImageDraw
 
-def animate_path(map_metadata, map_image, track_points, fps):
+def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
-    height, width = 512, 512
+    height, width = anim_pixels, anim_pixels
     center_factor = 0.3
     center_radius = center_factor / 2 * min(height,width)
 
