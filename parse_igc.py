@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 def parse_igc(igc_file_path):
     track_points = []
-    base_time = None  # Base time for the flight
+    base_time = datetime(2000, 1, 1)  # Base time for the flight
+    last_timestamp = None
 
     with open(igc_file_path, 'r') as f:
         for line in f:
@@ -11,11 +12,21 @@ def parse_igc(igc_file_path):
                 line = line.strip()
                 day, month, year = map(int, [line[10:12], line[12:14], line[14:16]])
                 base_time = datetime(year + 2000, month, day)  # Assuming year 2000+
+            elif line.startswith('HFDTE'):
+                line = line.strip()
+                day, month, year = map(int, [line[5:7], line[7:9], line[9:11]])
+                base_time = datetime(year + 2000, month, day)  # Assuming year 2000+
 
             elif line.startswith('B'):  # Fix line
                 time_str = line[1:7]
                 time_delta = timedelta(hours=int(time_str[0:2]), minutes=int(time_str[2:4]), seconds=int(time_str[4:6]))
-                timestamp = base_time + time_delta if base_time else None
+                timestamp = base_time + time_delta
+
+                # Check for time rollover at midnight
+                if last_timestamp and timestamp < last_timestamp:
+                    base_time += timedelta(days=1)
+                    timestamp += timedelta(days=1)
+                last_timestamp = timestamp
                 
                 lat = int(line[7:9]) + float(line[9:14]) / 60000
                 if line[14] == 'S':

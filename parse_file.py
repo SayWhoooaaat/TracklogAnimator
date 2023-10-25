@@ -103,7 +103,6 @@ def parse_file(file_path, dt):
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
-
     
     return track_points2, track_metadata
 

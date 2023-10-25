@@ -5,7 +5,7 @@ fps = 30
 dt = speedup / fps
 
 anim_pixels = 300
-anim_km = 6
+anim_km = 12
 
 
 from parse_file import parse_file
