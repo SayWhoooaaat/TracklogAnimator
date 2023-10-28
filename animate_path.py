@@ -17,13 +17,13 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
+def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
-    height, width = anim_pixels, anim_pixels
+    height, width = overlay_width, overlay_width
     center_factor = 0.3
     center_radius = center_factor / 2 * min(height,width)
 

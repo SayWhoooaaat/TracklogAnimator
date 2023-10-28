@@ -18,7 +18,7 @@ def draw_path(map_metadata, map_image, track_points):
         y = y0 + y_meters / m_px
 
         if i > 0:
-            draw.line((last_x, last_y, x, y), fill='red')
+            draw.line((last_x, last_y, x, y), fill='red', width=2)
         last_x, last_y = x, y
     
     # Save and return the new image
