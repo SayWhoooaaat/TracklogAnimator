@@ -83,6 +83,8 @@ def parse_file(file_path, dt):
         ele = ele1 + fraction * (ele2 - ele1)
         vx = vx1 + fraction * (vx2 - vx1)
         vy = vy1 + fraction * (vy2 - vy1)
+        lat = lat1 + fraction * (lat2 - lat1)
+        lon = lon1 + fraction * (lon2 - lon1)
 
         v = math.sqrt(vx*vx+vy*vy)
         if (vx == 0) & (vy == 0):
@@ -99,10 +101,11 @@ def parse_file(file_path, dt):
             dt_check = dt
 
         # append values to new array
-        track_points2.append([current_time, x, y, ele, v, phi, dt_check])
+        track_points2.append([current_time, x, y, ele, v, phi, dt_check, lat, lon])
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
     
+    print("Made 2D-array from trackfile")
     return track_points2, track_metadata
 
