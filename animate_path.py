@@ -35,7 +35,7 @@ def animate_path(map_metadata, map_image, track_points, fps, anim_pixels):
 
     # Initialize video writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter('animation.mp4', fourcc, fps, (height, width))
+    out = cv2.VideoWriter('media/animation.mp4', fourcc, fps, (height, width))
 
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)

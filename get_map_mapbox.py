@@ -88,7 +88,7 @@ def get_map_mapbox(track_metadata, anim_pixels, anim_km):
                 map_img.paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
 
     # Save the stitched map image
-    map_img.save('map_stitched.png')
+    map_img.save('media/map_stitched.png')
     print("Saved map")
 
     # Calculate map_metadata

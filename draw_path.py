@@ -22,6 +22,6 @@ def draw_path(map_metadata, map_image, track_points):
         last_x, last_y = x, y
     
     # Save and return the new image
-    path_image.save('map_with_path.png')
+    path_image.save('media/map_with_path.png')
     print("Made map with path")
     return path_image

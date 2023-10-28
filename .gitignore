@@ -7,3 +7,5 @@ env/
 *.gpx
 *.tcx
 *.jpg
+media/
+tracklogs/
