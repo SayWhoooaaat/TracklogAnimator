@@ -26,6 +26,7 @@ def get_tile_image(x, y, zoom, max_retries=3):
         return Image.open(cache_path)
 
     # If not in cache, download
+    print("Downloading map tile")
     retries = 0
     while retries < max_retries:
         response = requests.get(url, stream=True)
@@ -81,6 +82,7 @@ def get_map_mapbox(track_metadata, anim_pixels, anim_km):
     map_img = Image.new('RGB', (width, height))
 
     # Fetch each tile and paste it into the map image
+    print("Stitching minimap")
     for x in range(x_min - 1, x_max + 2):
         for y in range(y_min - 1, y_max + 2):
             tile_img = get_tile_image(x,y,zoom)

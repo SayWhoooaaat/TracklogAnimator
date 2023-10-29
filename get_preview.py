@@ -1,5 +1,6 @@
 import math
 from PIL import Image, ImageDraw, ImageFont
+import sys
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -42,7 +43,7 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
 
         # Draws path on image with only path
         if i > 0:
-            draw.line((last_x, last_y, x, y), fill='red', width=2)
+            draw.line((last_x, last_y, x, y), fill='red', width=1)
         last_x, last_y = x, y
 
     # Draws arrow at the end of path (but doesnt mess with path_image)
@@ -77,17 +78,22 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
     base_image.paste(outline_image, position_outline, outline_image)
 
     # Drawing text
-    timedate, x, y, ele, v, phi, dt_check, lat, lon = track_points[endpoint]
+    timedate, x, y, ele, v, phi, dt_check, lat, lon, dist = track_points[endpoint]
     current_time = timedate.strftime("%H:%M")
     current_date = timedate.strftime("%Y-%m-%d")
 
     draw5 = ImageDraw.Draw(base_image)
     draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
     draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-    draw5.text((40,750), f"{round(ele)} msl", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-    draw5.text((120,750), f"{round(v,2)} m/s", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((20,750), f"{round(ele)} msl", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((120,750), f"{round(v)} m/s", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
     base_image.save("media/preview.png")
+    user_input = input("Preview saved. Proceed? (y/n): ")
+    if user_input.lower() != 'y':
+        print("Terminating program.")
+        sys.exit()
 
     return
 

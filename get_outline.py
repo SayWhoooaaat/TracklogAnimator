@@ -81,6 +81,7 @@ def save_borders(lat_min, lat_max, lon_min, lon_max, width, height):
 
 def get_outline(track_points, width=300, height=400):
     coords = [(point[7], point[8]) for point in track_points]
+    print("Finding country...")
     lon_min, lat_min, lon_max, lat_max = get_bounding_coordinates(coords)
     # Add padding around coordinates
     padding_percentage = 2
@@ -89,6 +90,7 @@ def get_outline(track_points, width=300, height=400):
     lat_min = lat_min - (lat_max - lat_min) * padding_percentage / 100
     lat_max = lat_max + (lat_max - lat_min) * padding_percentage / 100
     
+    print("Generating country outline...")
     save_borders(lat_min, lat_max, lon_min, lon_max, width, height)
     print("Saved country map")
 

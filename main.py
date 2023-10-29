@@ -11,10 +11,10 @@ minimap_km = 4
 from parse_file import parse_file
 track_points, track_metadata = parse_file(track_file, dt)
 
-#import csv
-#with open('array_output.csv', 'w', newline='') as f:
-#    writer = csv.writer(f)
-#    writer.writerows(track_points)
+import csv
+with open('array_output.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerows(track_points)
 
 from get_outline import get_outline
 get_outline(track_points, width=overlay_width)
@@ -29,8 +29,6 @@ path_image = draw_path(map_metadata, map_image, track_points)
 # Make preview image here
 from get_preview import get_preview
 get_preview(map_metadata, map_image, track_points, overlay_width)
-
-exit()
 
 from animate_path import animate_path
 animate_path(map_metadata, map_image, track_points, fps, overlay_width)

@@ -2,6 +2,42 @@ import os
 import math
 from datetime import datetime
 from datetime import timedelta
+import random
+
+def total_distance(points):
+    dist = 0
+    for i in range(len(points) - 1):
+        x1, y1 = points[i][0], points[i][1]
+        x2, y2 = points[i+1][0], points[i+1][1]
+        dist += math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return dist
+
+def get_5pt_distance(xy_positions, previous_best_points):
+    temp = 10000
+    cooling_rate = 0.995
+
+    current_points = previous_best_points[0:4] + [xy_positions[-1]]
+    current_distance = total_distance(current_points)
+    best_points = current_points
+    best_distance = current_distance
+    
+    while temp > 1:
+        sampled_indexes = sorted(random.sample(range(1, len(xy_positions) - 1), 3))
+        new_points = [xy_positions[i] for i in [0] + sampled_indexes + [-1]]
+        new_distance = total_distance(new_points)
+        
+        if new_distance > current_distance or math.exp((new_distance - current_distance) / temp) > random.random():
+            current_points = new_points
+            current_distance = new_distance
+            
+            if new_distance > best_distance:
+                best_points = new_points
+                best_distance = new_distance
+        
+        temp *= cooling_rate
+    
+    return best_distance, best_points
+
 
 def parse_file(file_path, dt):
     # Find file type
@@ -64,6 +100,16 @@ def parse_file(file_path, dt):
         track_points[i].append(vx)
         track_points[i].append(vy)
 
+    for i in range(0, len(track_points)):
+        # Add traveled distance
+        if i < 10:
+            dist = 0
+            previous_best_points = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
+        else:
+            xy_positions = [[point[4], point[5]] for point in track_points[:i+1]]
+            dist, previous_best_points = get_5pt_distance(xy_positions, previous_best_points)
+        track_points[i].append(dist)
+
     # Making contant interval matrix
     track_points2 = []
     current_time = track_points[0][0]
@@ -73,8 +119,8 @@ def parse_file(file_path, dt):
         # Find the appropriate i such that track_points[i][0] <= current_time < track_points[i+1][0]
         while i < len(track_points) - 1 and current_time >= track_points[i + 1][0]:
             i += 1
-        t1, lat1, lon1, ele1, x1, y1, vx1, vy1 = track_points[i]
-        t2, lat2, lon2, ele2, x2, y2, vx2, vy2 = track_points[i + 1]
+        t1, lat1, lon1, ele1, x1, y1, vx1, vy1, dist1 = track_points[i]
+        t2, lat2, lon2, ele2, x2, y2, vx2, vy2, dist2 = track_points[i + 1]
         fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         
         # Interpolate
@@ -85,6 +131,7 @@ def parse_file(file_path, dt):
         vy = vy1 + fraction * (vy2 - vy1)
         lat = lat1 + fraction * (lat2 - lat1)
         lon = lon1 + fraction * (lon2 - lon1)
+        dist = dist1 + fraction * (dist2 - dist1)
 
         v = math.sqrt(vx*vx+vy*vy)
         if (vx == 0) & (vy == 0):
@@ -101,7 +148,7 @@ def parse_file(file_path, dt):
             dt_check = dt
 
         # append values to new array
-        track_points2.append([current_time, x, y, ele, v, phi, dt_check, lat, lon])
+        track_points2.append([current_time, x, y, ele, v, phi, dt_check, lat, lon, dist])
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
