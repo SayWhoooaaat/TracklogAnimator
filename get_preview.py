@@ -85,8 +85,8 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
     draw5 = ImageDraw.Draw(base_image)
     draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
     draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-    draw5.text((20,750), f"{round(ele)} msl", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-    draw5.text((120,750), f"{round(v)} m/s", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((100,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
     draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
     base_image.save("media/preview.png")

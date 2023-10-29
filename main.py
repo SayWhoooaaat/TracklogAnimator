@@ -16,17 +16,16 @@ with open('array_output.csv', 'w', newline='') as f:
     writer = csv.writer(f)
     writer.writerows(track_points)
 
+from get_map import get_map
+map_image, map_metadata = get_map(track_metadata, overlay_width, minimap_km, track_points)
+
 from get_outline import get_outline
 get_outline(track_points, width=overlay_width)
 # Should return with image and metadata for animating
 
-from get_map_mapbox import get_map_mapbox
-map_image, map_metadata = get_map_mapbox(track_metadata, overlay_width, minimap_km)
-
 from draw_path import draw_path # Redundant, but good for testing 
 path_image = draw_path(map_metadata, map_image, track_points) 
 
-# Make preview image here
 from get_preview import get_preview
 get_preview(map_metadata, map_image, track_points, overlay_width)
 
