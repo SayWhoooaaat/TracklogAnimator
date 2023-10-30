@@ -1,8 +1,7 @@
-import cv2
-import numpy as np
 import math
-from PIL import ImageDraw
-from PIL import ImageFont
+from PIL import ImageDraw, ImageFont, Image
+import os
+import subprocess
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -24,6 +23,7 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
+    total_height = 1080 # Should be passed in..
     center_factor = 0.3
     center_radius = center_factor / 2 * min(height,width)
 
@@ -33,18 +33,21 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
     ruler_text = f"{ruler_km} km"
     font = ImageFont.truetype("arial.ttf", size=14)
 
-    # Initialize video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter('media/animation.mp4', fourcc, fps, (height, width))
-
+    # Initializes mini-map image
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
+    temp_folder = 'temp_frames'
+    os.makedirs(temp_folder, exist_ok=True)
+
+    print("Making animation frames...")
     for i in range(0, len(track_points)):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]
         phi = track_points[i][5]
         
+        # STEP 1: MAKE MINI-MAP FRAME (Separate function?)
+
         x = x0 + x_meters / m_px
         y = y0 + y_meters / m_px
 
@@ -77,14 +80,55 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
         text_width, text_height = draw3.textsize(ruler_text, font=font)
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
-        # Convert PIL image to NumPy array and write to video
-        frame = np.array(cropped_image)
-        out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        # STEP 2: MAKE OUTLINE-MAP FRAME (Separate function?)
+        outline_image = Image.open("media/country_outline.png").convert("RGBA")
+        # Should be passed with metadata (m_px) to draw path and point
 
-        if i % 1000 == 0: 
+        # STEP 3: PUT IMAGES TOGETHER
+        animation_frame = Image.new('RGBA', (width, total_height))
+        cropped_image = cropped_image.convert("RGBA")
+
+        position_minimap = (0, animation_frame.size[1] - cropped_image.size[1])
+        position_outline = (0, animation_frame.size[1] - cropped_image.size[1] - outline_image.size[1] - 50)
+
+        animation_frame.paste(cropped_image, position_minimap, cropped_image)
+        animation_frame.paste(outline_image, position_outline, outline_image)
+
+        # Drawing text
+        timedate, x, y, ele, v, phi, dt_check, lat, lon, dist = track_points[i]
+        current_time = timedate.strftime("%H:%M")
+        current_date = timedate.strftime("%Y-%m-%d")
+
+        draw5 = ImageDraw.Draw(animation_frame)
+        draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
+        draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
+        draw5.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw5.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+
+        # Save frame as png:
+        frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')
+        animation_frame.save(frame_path, 'PNG')
+
+        if i % 300 == 0: 
             print(f"Progress: {round(i/len(track_points)*100)}%")
 
-    # Release the video writer
-    out.release()
+    # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
+    print("Stitching frames into transparent video...")
+    ffmpeg_command = [
+        'ffmpeg',
+        '-framerate', str(fps),
+        '-i', f'{temp_folder}/frame_%06d.png',
+        '-vcodec', 'prores_ks',
+        '-profile:v', '4444',  # This is for ProRes 4444
+        '-pix_fmt', 'yuva444p10le',  # This enables the alpha channel
+        'media/animation2.mov'
+    ]
+    subprocess.run(ffmpeg_command)
+
+    # Remove temporary frames
+    for file_name in os.listdir(temp_folder):
+        os.remove(os.path.join(temp_folder, file_name))
+    os.rmdir(temp_folder)
 
     return
