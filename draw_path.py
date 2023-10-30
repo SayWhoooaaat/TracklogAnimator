@@ -10,6 +10,7 @@ def draw_path(map_metadata, map_image, track_points):
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
+    print("Drawing path on map for fun...")
     for i in range(0, len(track_points)):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]

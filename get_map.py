@@ -67,7 +67,7 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     zoom = round(math.log2(n))
     n = 2 ** zoom
     anim_km_actual = 40075.0 / n * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
-    print(f"zoom = {zoom}, n = {round(n,2)}, mapwidth = {round(anim_km_actual,2)}")
+    print(f"Mini-map size = {round(anim_km_actual,2)} km")
 
     # Create a blank image big enough
     x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
@@ -109,6 +109,8 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
         if user_input.lower() != 'y':
             print("Terminating program.")
             sys.exit()
+    else:
+        print("All tiles are stored in cache. Stitching image...")
 
     # Downloading maps
     for point in tile_list:

@@ -16,6 +16,7 @@ def get_ruler_km(map_km):
 
 
 def get_preview(map_metadata, map_image, track_points, overlay_width):
+    print("Making preview image...")
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
@@ -86,7 +87,7 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
     draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
     draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
     draw5.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-    draw5.text((100,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw5.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
     draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
     base_image.save("media/preview.png")

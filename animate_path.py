@@ -81,6 +81,9 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
         frame = np.array(cropped_image)
         out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
+        if i % 1000 == 0: 
+            print(f"Progress: {round(i/len(track_points)*100)}%")
+
     # Release the video writer
     out.release()
 

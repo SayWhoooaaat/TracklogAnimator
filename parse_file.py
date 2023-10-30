@@ -21,7 +21,7 @@ def get_5pt_distance(xy_positions, previous_best_points):
     best_points = current_points
     best_distance = current_distance
     
-    while temp > 1:
+    while temp > 1: # Seems stupid. Takes random points and checks if they are better..
         sampled_indexes = sorted(random.sample(range(1, len(xy_positions) - 1), 3))
         new_points = [xy_positions[i] for i in [0] + sampled_indexes + [-1]]
         new_distance = total_distance(new_points)
@@ -55,6 +55,7 @@ def parse_file(file_path, dt):
     else:
         print("Unsupported file type.")
         track_points = None, None
+    print(f"Parsing {file_type} file to 2D-array")
 
     # Store metadata
     track_metadata = { # This is a dictionary
@@ -100,15 +101,19 @@ def parse_file(file_path, dt):
         track_points[i].append(vx)
         track_points[i].append(vy)
 
+    # 5-pt distance
+    print("Calculating 5-point distances...")
     for i in range(0, len(track_points)):
-        # Add traveled distance
         if i < 10:
             dist = 0
-            previous_best_points = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
+            previous_best_points = [[track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]]]
         else:
             xy_positions = [[point[4], point[5]] for point in track_points[:i+1]]
             dist, previous_best_points = get_5pt_distance(xy_positions, previous_best_points)
+        if i % 2000 == 0: 
+            print(f"Progress: {round(i/len(track_points)*100)}%")
         track_points[i].append(dist)
+    print(f"Best 5-point distance: {round(dist/1000)} km. Finishing 2D-array...")
 
     # Making contant interval matrix
     track_points2 = []

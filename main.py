@@ -1,6 +1,6 @@
 
 track_file = "tracklogs/gpx_loen.gpx"
-speedup = 50
+speedup = 121
 fps = 30
 dt = speedup / fps
 
