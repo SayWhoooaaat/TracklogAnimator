@@ -14,7 +14,7 @@ def total_distance(points):
 
 def get_5pt_distance(xy_positions, previous_best_points):
     temp = 10000
-    cooling_rate = 0.995
+    cooling_rate = 0.98 # 0.995 = 1800 iter. 0.98 = 450 iter
 
     current_points = previous_best_points[0:4] + [xy_positions[-1]]
     current_distance = total_distance(current_points)
@@ -80,8 +80,8 @@ def parse_file(file_path, dt):
     radius = 6371000.0
     for i in range(0, len(track_points)):
         timestamp, latitude, longitude, *_ = track_points[i]
-        y = (lat0 - latitude) / 180 * math.pi * radius # Positive is further south
-        x = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius # Pos furth east
+        y = (lat0 - latitude) / 180 * math.pi * radius # Positive is further south. Precise
+        x = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius # Pos furth east. Precise if measured at lat0
         track_points[i].append(x)
         track_points[i].append(y)
         if i==0:

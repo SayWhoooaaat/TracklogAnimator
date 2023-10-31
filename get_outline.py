@@ -3,6 +3,7 @@ from shapely.geometry import box, Point, Polygon, MultiPolygon
 from shapely.ops import unary_union, transform
 from PIL import Image, ImageDraw
 import pyproj
+import math
 
 # Fundtion finds extreme coordinates on country/island from coordinate list
 def get_bounding_coordinates(coords):
@@ -33,7 +34,7 @@ def get_bounding_coordinates(coords):
 
 
 # Function saves section of map from extreme coordinates
-def save_borders(lat_min, lat_max, lon_min, lon_max, width, height):
+def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
 
     bbox = box(lon_min, lat_min, lon_max, lat_max)
     # Load GeoJSON of World Countries
@@ -78,21 +79,39 @@ def save_borders(lat_min, lat_max, lon_min, lon_max, width, height):
                 draw.polygon(list(zip(normalized_x, normalized_y)), fill=None, outline=(255, 255, 255, 255))
 
     img.save("media/country_outline.png")
+    return img
 
-def get_outline(track_points, width=300, height=400):
+def get_outline(track_points, track_metadata, width=300, height=400):
     coords = [(point[7], point[8]) for point in track_points]
+
     print("Finding country...")
     lon_min, lat_min, lon_max, lat_max = get_bounding_coordinates(coords)
-    # Add padding around coordinates
-    padding_percentage = 2
+    padding_percentage = 2 # Add padding around coordinates
     lon_min = lon_min - (lon_max - lon_min) * padding_percentage / 100
     lon_max = lon_max + (lon_max - lon_min) * padding_percentage / 100
     lat_min = lat_min - (lat_max - lat_min) * padding_percentage / 100
     lat_max = lat_max + (lat_max - lat_min) * padding_percentage / 100
     
     print("Generating country outline...")
-    save_borders(lat_min, lat_max, lon_min, lon_max, width, height)
+    outline_image = get_borders(lat_min, lat_max, lon_min, lon_max, width, height)
+    # NB! lat/lon min/max are updated in get_borders! Must update!
     print("Saved country map")
+
+    # Calculate map_metadata
+    lat_max_track = track_metadata['max_latitude']
+    lon_min_track = track_metadata['min_longitude']
+    radius = 6371000.0
+    y_distance = radius * (lat_max-lat_min)/180*math.pi
+    m_px = y_distance / height # Correct on average, but wrong on top and bottom due to mercator
+    # Correct later if obvious. 
+    
+    # Get pixels from map edge to path edge
+    x_pixels = (lon_min_track - lon_min)/(lon_max - lon_min) * width
+    y_pixels = (lat_max - lat_max_track)/(lat_max - lat_min) * height # Imprecise! Bad mercator
+    
+    outline_metadata = [m_px, x_pixels, y_pixels]
+
+    return(outline_image, outline_metadata)
 
 
 

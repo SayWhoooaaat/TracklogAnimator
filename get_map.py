@@ -125,13 +125,13 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
 
     # Calculate map_metadata
     radius = 6371000.0
-    meters_per_degree = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi)
+    meters_per_pixel = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
     
     # Get pixels from map edge to path edge
     x_0 = ((lon_min + 180.0) * 2**zoom / 360.0 - (x_min-1)) * cell_size
     y_0 = ((1.0 - math.log(math.tan(math.radians(lat_max)) + (1 / math.cos(math.radians(lat_max)))) / math.pi) / 2.0 * 2**zoom - (y_min-1)) * cell_size
 
-    map_metadata = [meters_per_degree, x_0, y_0]
+    map_metadata = [meters_per_pixel, x_0, y_0]
 
     return(map_img, map_metadata)
 

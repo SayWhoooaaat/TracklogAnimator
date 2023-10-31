@@ -16,10 +16,14 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
+def animate_path(track_points, map_image, map_metadata, outline_image, outline_metadata, fps, overlay_width):
+    m_px_outline = outline_metadata[0]
+    x_pixels_outline = outline_metadata[1]
+    y_pixels_outline = outline_metadata[2]
+    
     m_px = map_metadata[0]
-    x0 = map_metadata[1]
-    y0 = map_metadata[2]
+    x_pixels = map_metadata[1]
+    y_pixels = map_metadata[2]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
@@ -41,19 +45,18 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
     os.makedirs(temp_folder, exist_ok=True)
 
     print("Making animation frames...")
-    for i in range(0, len(track_points)):
+    for i in range(1, len(track_points)):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]
         phi = track_points[i][5]
         
-        # STEP 1: MAKE MINI-MAP FRAME (Separate function?)
-
-        x = x0 + x_meters / m_px
-        y = y0 + y_meters / m_px
+        # STEP 1: MAKE MINI-MAP FRAME
+        x = x_pixels + x_meters / m_px
+        y = y_pixels + y_meters / m_px
 
         # Draws path on image with only path
         if i > 0:
-            draw.line((last_x, last_y, x, y), fill='red', width=2)
+            draw.line((last_x, last_y, x, y), fill='red', width=1)
         last_x, last_y = x, y
 
         # Draws arrow at the end of path (but doesnt mess with path_image)
@@ -80,9 +83,18 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
         text_width, text_height = draw3.textsize(ruler_text, font=font)
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
-        # STEP 2: MAKE OUTLINE-MAP FRAME (Separate function?)
-        outline_image = Image.open("media/country_outline.png").convert("RGBA")
-        # Should be passed with metadata (m_px) to draw path and point
+        # STEP 2: MAKE OUTLINE-MAP FRAME
+        x_outline = x_pixels_outline + x_meters / m_px_outline
+        y_outline = y_pixels_outline + y_meters / m_px_outline
+        # Draws path on image with only path
+        draw4 = ImageDraw.Draw(outline_image)
+        if i > 0:
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill='orange', width=1)
+        last_x_outline, last_y_outline = x_outline, y_outline
+        # Draws arrow at the end of path (but doesnt mess with path_image)
+        outline_with_dot = outline_image.copy()
+        draw5 = ImageDraw.Draw(outline_with_dot)
+        draw5.ellipse([x_outline - 1, y_outline - 1, x_outline + 1, y_outline + 1], fill='red')
 
         # STEP 3: PUT IMAGES TOGETHER
         animation_frame = Image.new('RGBA', (width, total_height))
@@ -92,19 +104,19 @@ def animate_path(map_metadata, map_image, track_points, fps, overlay_width):
         position_outline = (0, animation_frame.size[1] - cropped_image.size[1] - outline_image.size[1] - 50)
 
         animation_frame.paste(cropped_image, position_minimap, cropped_image)
-        animation_frame.paste(outline_image, position_outline, outline_image)
+        animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
         # Drawing text
         timedate, x, y, ele, v, phi, dt_check, lat, lon, dist = track_points[i]
         current_time = timedate.strftime("%H:%M")
         current_date = timedate.strftime("%Y-%m-%d")
 
-        draw5 = ImageDraw.Draw(animation_frame)
-        draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
-        draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-        draw5.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        draw5.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6 = ImageDraw.Draw(animation_frame)
+        draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
+        draw6.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
+        draw6.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
         # Save frame as png:
         frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')

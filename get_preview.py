@@ -15,8 +15,12 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def get_preview(map_metadata, map_image, track_points, overlay_width):
+def get_preview(track_points, map_image, map_metadata, outline_image, outline_metadata, overlay_width):
     print("Making preview image...")
+    m_px_outline = outline_metadata[0]
+    x_pixels_outline = outline_metadata[1]
+    y_pixels_outline = outline_metadata[2]
+
     m_px = map_metadata[0]
     x0 = map_metadata[1]
     y0 = map_metadata[2]
@@ -33,7 +37,7 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
-    endpoint = round(len(track_points)/2)
+    endpoint = round(len(track_points)*3/4)
     for i in range(0, endpoint):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]
@@ -67,28 +71,47 @@ def get_preview(map_metadata, map_image, track_points, overlay_width):
 
     cropped_image.save('media/preview_minimap.png')
 
+    # STEP 2: MAKE OUTLINE-MAP FRAME
+    for i in range(0, endpoint):
+        x_meters = track_points[i][1]
+        y_meters = track_points[i][2]
+        
+        x_outline = x_pixels_outline + x_meters / m_px_outline
+        y_outline = y_pixels_outline + y_meters / m_px_outline
+
+        # Draws path on image with only path
+        draw4 = ImageDraw.Draw(outline_image)
+        if i > 0:
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill='orange', width=1)
+        last_x_outline, last_y_outline = x_outline, y_outline
+    
+    # Draws arrow at the end of path (but doesnt mess with path_image)
+    outline_with_dot = outline_image.copy()
+    draw5 = ImageDraw.Draw(outline_with_dot)
+    draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
+    outline_with_dot.save('media/preview_outline.png')
+
     # Now put all images together
     base_image = Image.open("media/preview_background.png").convert("RGBA")
-    outline_image = Image.open("media/country_outline.png").convert("RGBA")
     cropped_image = cropped_image.convert("RGBA")
 
     position_minimap = (0, base_image.size[1] - cropped_image.size[1])
     position_outline = (0, base_image.size[1] - cropped_image.size[1] - outline_image.size[1] - 50)
 
     base_image.paste(cropped_image, position_minimap, cropped_image)
-    base_image.paste(outline_image, position_outline, outline_image)
+    base_image.paste(outline_with_dot, position_outline, outline_with_dot)
 
     # Drawing text
     timedate, x, y, ele, v, phi, dt_check, lat, lon, dist = track_points[endpoint]
     current_time = timedate.strftime("%H:%M")
     current_date = timedate.strftime("%Y-%m-%d")
 
-    draw5 = ImageDraw.Draw(base_image)
-    draw5.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
-    draw5.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-    draw5.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-    draw5.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-    draw5.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw6 = ImageDraw.Draw(base_image)
+    draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
+    draw6.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
+    draw6.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw6.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw6.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
     base_image.save("media/preview.png")
     user_input = input("Preview saved. Proceed? (y/n): ")

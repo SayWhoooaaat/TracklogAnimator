@@ -15,8 +15,8 @@ def draw_path(map_metadata, map_image, track_points):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]
         
-        x = x0 + x_meters / m_px
-        y = y0 + y_meters / m_px
+        x = x0 + x_meters / m_px # Mercator imprecise: x0, x_meters, m_px
+        y = y0 + y_meters / m_px # Mercator imprecise: y0, m_px
 
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=2)
