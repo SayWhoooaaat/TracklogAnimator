@@ -60,6 +60,15 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
     y_scale = (bbox_maxy - bbox_miny) / height
     scale = max(x_scale, y_scale)
 
+    # Update bounding coordinates
+    bbox2_xmax = (bbox_maxx + bbox_minx + scale * width) / 2
+    bbox2_xmin = (bbox_maxx + bbox_minx - scale * width) / 2
+    bbox2_ymax = (bbox_maxy + bbox_miny + scale * height) / 2
+    bbox2_ymin = (bbox_maxy + bbox_miny - scale * height) / 2
+    project_inverse = pyproj.Transformer.from_crs("EPSG:3395", "EPSG:4326", always_xy=True).transform
+    adjusted_bbox = transform(project_inverse, box(bbox2_xmin, bbox2_ymin, bbox2_xmax, bbox2_ymax))
+    lon_min, lat_min, lon_max, lat_max = adjusted_bbox.bounds
+
     # Initialize the image
     img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -68,20 +77,20 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
     for geom in gdf_to_draw.geometry:
         if isinstance(geom, Polygon):
             x, y = geom.exterior.xy
-            normalized_x = [(i - bbox_minx) / scale for i in x]
-            normalized_y = [height - (i - bbox_miny) / scale for i in y]
+            normalized_x = [(i - bbox2_xmin) / scale for i in x]
+            normalized_y = [height - (i - bbox2_ymin) / scale for i in y]
             draw.polygon(list(zip(normalized_x, normalized_y)), fill=None, outline=(255, 255, 255, 255))
         elif isinstance(geom, MultiPolygon):
             for poly in geom.geoms:
                 x, y = poly.exterior.xy
-                normalized_x = [(i - bbox_minx) / scale for i in x]
-                normalized_y = [height - (i - bbox_miny) / scale for i in y]
+                normalized_x = [(i - bbox2_xmin) / scale for i in x]
+                normalized_y = [height - (i - bbox2_ymin) / scale for i in y]
                 draw.polygon(list(zip(normalized_x, normalized_y)), fill=None, outline=(255, 255, 255, 255))
 
     img.save("media/country_outline.png")
-    return img
+    return (img, adjusted_bbox.bounds)
 
-def get_outline(track_points, track_metadata, width=300, height=400):
+def get_outline(track_points, width=300, height=400):
     coords = [(point[7], point[8]) for point in track_points]
 
     print("Finding country...")
@@ -93,23 +102,11 @@ def get_outline(track_points, track_metadata, width=300, height=400):
     lat_max = lat_max + (lat_max - lat_min) * padding_percentage / 100
     
     print("Generating country outline...")
-    outline_image = get_borders(lat_min, lat_max, lon_min, lon_max, width, height)
-    # NB! lat/lon min/max are updated in get_borders! Must update!
+    outline_image, bounding_coords = get_borders(lat_min, lat_max, lon_min, lon_max, width, height)
+    lon_min, lat_min, lon_max, lat_max = bounding_coords
     print("Saved country map")
-
-    # Calculate map_metadata
-    lat_max_track = track_metadata['max_latitude']
-    lon_min_track = track_metadata['min_longitude']
-    radius = 6371000.0
-    y_distance = radius * (lat_max-lat_min)/180*math.pi
-    m_px = y_distance / height # Correct on average, but wrong on top and bottom due to mercator
-    # Correct later if obvious. 
     
-    # Get pixels from map edge to path edge
-    x_pixels = (lon_min_track - lon_min)/(lon_max - lon_min) * width
-    y_pixels = (lat_max - lat_max_track)/(lat_max - lat_min) * height # Imprecise! Bad mercator
-    
-    outline_metadata = [m_px, x_pixels, y_pixels]
+    outline_metadata = [lon_min, lat_min, lon_max, lat_max, width, height]
 
     return(outline_image, outline_metadata)
 

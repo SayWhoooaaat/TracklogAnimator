@@ -55,7 +55,7 @@ def parse_file(file_path, dt):
     else:
         print("Unsupported file type.")
         track_points = None, None
-    print(f"Parsing {file_type} file to 2D-array")
+    print(f"Parsing {file_type} file to 2D-array...")
 
     # Store metadata
     track_metadata = { # This is a dictionary

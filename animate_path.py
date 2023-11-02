@@ -16,10 +16,7 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(track_points, map_image, map_metadata, outline_image, outline_metadata, fps, overlay_width):
-    m_px_outline = outline_metadata[0]
-    x_pixels_outline = outline_metadata[1]
-    y_pixels_outline = outline_metadata[2]
+def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width):
     
     m_px = map_metadata[0]
     x_pixels = map_metadata[1]
@@ -45,7 +42,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, outline_m
     os.makedirs(temp_folder, exist_ok=True)
 
     print("Making animation frames...")
-    for i in range(1, len(track_points)):
+    for i in range(0, len(track_points)):
         x_meters = track_points[i][1]
         y_meters = track_points[i][2]
         phi = track_points[i][5]
@@ -84,8 +81,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, outline_m
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = x_pixels_outline + x_meters / m_px_outline
-        y_outline = y_pixels_outline + y_meters / m_px_outline
+        x_outline = track_points[i][10]
+        y_outline = track_points[i][11]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
@@ -94,7 +91,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, outline_m
         # Draws arrow at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
         draw5 = ImageDraw.Draw(outline_with_dot)
-        draw5.ellipse([x_outline - 1, y_outline - 1, x_outline + 1, y_outline + 1], fill='red')
+        draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
 
         # STEP 3: PUT IMAGES TOGETHER
         animation_frame = Image.new('RGBA', (width, total_height))
@@ -107,7 +104,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, outline_m
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
         # Drawing text
-        timedate, x, y, ele, v, phi, dt_check, lat, lon, dist = track_points[i]
+        timedate, x, y, ele, v, phi, dt_check, lat, lon, dist, *_ = track_points[i]
         current_time = timedate.strftime("%H:%M")
         current_date = timedate.strftime("%Y-%m-%d")
 
@@ -134,13 +131,13 @@ def animate_path(track_points, map_image, map_metadata, outline_image, outline_m
         '-vcodec', 'prores_ks',
         '-profile:v', '4444',  # This is for ProRes 4444
         '-pix_fmt', 'yuva444p10le',  # This enables the alpha channel
-        'media/animation2.mov'
+        'media/animation.mov'
     ]
     subprocess.run(ffmpeg_command)
 
     # Remove temporary frames
-    for file_name in os.listdir(temp_folder):
-        os.remove(os.path.join(temp_folder, file_name))
-    os.rmdir(temp_folder)
+    #for file_name in os.listdir(temp_folder):
+    #    os.remove(os.path.join(temp_folder, file_name))
+    #os.rmdir(temp_folder)
 
     return
