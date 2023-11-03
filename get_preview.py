@@ -18,9 +18,7 @@ def get_ruler_km(map_km):
 def get_preview(track_points, map_image, map_metadata, outline_image, overlay_width):
     print("Making preview image...")
 
-    m_px = map_metadata[0]
-    x0 = map_metadata[1]
-    y0 = map_metadata[2]
+    m_px = map_metadata[6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
@@ -36,13 +34,10 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
 
     endpoint = round(len(track_points)*3/4)
     for i in range(0, endpoint):
-        x_meters = track_points[i][1]
-        y_meters = track_points[i][2]
+        x = track_points[i][9]
+        y = track_points[i][10]
         phi = track_points[i][5]
         
-        x = x0 + x_meters / m_px
-        y = y0 + y_meters / m_px
-
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=1)
@@ -70,8 +65,8 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
 
     # STEP 2: MAKE OUTLINE-MAP FRAME
     for i in range(0, endpoint):
-        x_outline = track_points[i][10]
-        y_outline = track_points[i][11]
+        x_outline = track_points[i][11]
+        y_outline = track_points[i][12]
 
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
@@ -96,7 +91,7 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
     base_image.paste(outline_with_dot, position_outline, outline_with_dot)
 
     # Drawing text
-    timedate, x, y, ele, v, phi, dt_check, lat, lon, dist, *_ = track_points[endpoint]
+    timedate, x, y, ele, v, phi, lat, lon, dist, *_ = track_points[endpoint]
     current_time = timedate.strftime("%H:%M")
     current_date = timedate.strftime("%Y-%m-%d")
 

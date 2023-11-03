@@ -80,7 +80,7 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     # Make list of needed tiles
     tile_list = []
     # List first 9 tiles
-    x_tile, y_tile = lat_lon_to_tile_coords(track_points[0][7], track_points[0][8], zoom)
+    x_tile, y_tile = lat_lon_to_tile_coords(track_points[0][6], track_points[0][7], zoom)
     for x in range(x_tile - 1, x_tile + 2):
         for y in range(y_tile - 1, y_tile + 2):
             tile_list.append([x, y])
@@ -90,14 +90,14 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
         segment_dist = math.sqrt((point[1]- last_point[0])**2 + (point[2]-last_point[1])**2)
         if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled 2 km ish
             last_point = point[1], point[2]
-            x_tile, y_tile = lat_lon_to_tile_coords(point[7], point[8], zoom)
+            x_tile, y_tile = lat_lon_to_tile_coords(point[6], point[7], zoom)
             for x in range(x_tile - 1, x_tile + 2):
                 for y in range(y_tile - 1, y_tile + 2):
                     # Add to tile_list if not already included
                     if [x, y] not in tile_list:
                         tile_list.append([x, y])
     print(f"Need {len(tile_list)} tiles")
-
+    
     # Checking how many tiles to download
     download_list = []
     for tile in tile_list:
@@ -111,7 +111,7 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
             sys.exit()
     else:
         print("All tiles are stored in cache. Stitching image...")
-
+    
     # Downloading maps
     for point in tile_list:
         x, y = point
@@ -125,13 +125,13 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
 
     # Calculate map_metadata
     radius = 6371000.0
-    meters_per_pixel = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
+    m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
     
-    # Get pixels from map edge to path edge
-    x_0 = ((lon_min + 180.0) * 2**zoom / 360.0 - (x_min-1)) * cell_size
-    y_0 = ((1.0 - math.log(math.tan(math.radians(lat_max)) + (1 / math.cos(math.radians(lat_max)))) / math.pi) / 2.0 * 2**zoom - (y_min-1)) * cell_size
-
-    map_metadata = [meters_per_pixel, x_0, y_0]
+    lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180
+    lon_max_tile = (x_max + 2) * 360 / 2.0**zoom - 180
+    lat_max_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_min - 1) / 2.0**zoom))) - math.pi / 4)
+    lat_min_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_max + 2) / 2.0**zoom))) - math.pi / 4)
+    map_metadata = [lon_min_tile, lat_min_tile, lon_max_tile, lat_max_tile, width, height, m_px]
 
     return(map_img, map_metadata)
 

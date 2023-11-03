@@ -16,15 +16,12 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width):
+def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width, total_height):
     
-    m_px = map_metadata[0]
-    x_pixels = map_metadata[1]
-    y_pixels = map_metadata[2]
+    m_px = map_metadata[6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
-    total_height = 1080 # Should be passed in..
     center_factor = 0.3
     center_radius = center_factor / 2 * min(height,width)
 
@@ -43,14 +40,11 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
 
     print("Making animation frames...")
     for i in range(0, len(track_points)):
-        x_meters = track_points[i][1]
-        y_meters = track_points[i][2]
-        phi = track_points[i][5]
         
+        phi = track_points[i][5]
         # STEP 1: MAKE MINI-MAP FRAME
-        x = x_pixels + x_meters / m_px
-        y = y_pixels + y_meters / m_px
-
+        x = track_points[i][9]
+        y = track_points[i][10]
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=1)
@@ -81,8 +75,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = track_points[i][10]
-        y_outline = track_points[i][11]
+        x_outline = track_points[i][11]
+        y_outline = track_points[i][12]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
@@ -104,7 +98,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
         # Drawing text
-        timedate, x, y, ele, v, phi, dt_check, lat, lon, dist, *_ = track_points[i]
+        timedate, x, y, ele, v, phi, lat, lon, dist, *_ = track_points[i]
         current_time = timedate.strftime("%H:%M")
         current_date = timedate.strftime("%Y-%m-%d")
 
@@ -126,6 +120,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     print("Stitching frames into transparent video...")
     ffmpeg_command = [
         'ffmpeg',
+        '-y',
         '-framerate', str(fps),
         '-i', f'{temp_folder}/frame_%06d.png',
         '-vcodec', 'prores_ks',
@@ -136,8 +131,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     subprocess.run(ffmpeg_command)
 
     # Remove temporary frames
-    #for file_name in os.listdir(temp_folder):
-    #    os.remove(os.path.join(temp_folder, file_name))
+    for file_name in os.listdir(temp_folder):
+        os.remove(os.path.join(temp_folder, file_name))
     #os.rmdir(temp_folder)
 
     return

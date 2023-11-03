@@ -90,8 +90,8 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
     img.save("media/country_outline.png")
     return (img, adjusted_bbox.bounds)
 
-def get_outline(track_points, width=300, height=400):
-    coords = [(point[7], point[8]) for point in track_points]
+def get_outline(track_points, width, height):
+    coords = [(point[6], point[7]) for point in track_points]
 
     print("Finding country...")
     lon_min, lat_min, lon_max, lat_max = get_bounding_coordinates(coords)

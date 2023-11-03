@@ -14,7 +14,7 @@ def total_distance(points):
 
 def get_5pt_distance(xy_positions, previous_best_points):
     temp = 10000
-    cooling_rate = 0.98 # 0.995 = 1800 iter. 0.98 = 450 iter
+    cooling_rate = 0.8 # 0.995 = 1800 iter. 0.98 = 450 iter. 0.8 = 41
 
     current_points = previous_best_points[0:4] + [xy_positions[-1]]
     current_distance = total_distance(current_points)
@@ -29,6 +29,8 @@ def get_5pt_distance(xy_positions, previous_best_points):
         if new_distance > current_distance or math.exp((new_distance - current_distance) / temp) > random.random():
             current_points = new_points
             current_distance = new_distance
+
+            # Do local maxima-algorithm
             
             if new_distance > best_distance:
                 best_points = new_points
@@ -39,7 +41,7 @@ def get_5pt_distance(xy_positions, previous_best_points):
     return best_distance, best_points
 
 
-def parse_file(file_path, dt):
+def parse_file(file_path, dt, speedup):
     # Find file type
     _, file_extension = os.path.splitext(file_path)
     file_type = file_extension[1:].lower()
@@ -80,23 +82,23 @@ def parse_file(file_path, dt):
     radius = 6371000.0
     for i in range(0, len(track_points)):
         timestamp, latitude, longitude, *_ = track_points[i]
-        y = (lat0 - latitude) / 180 * math.pi * radius # Positive is further south. Precise
-        x = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius # Pos furth east. Precise if measured at lat0
-        track_points[i].append(x)
-        track_points[i].append(y)
+        y_ish = (lat0 - latitude) / 180 * math.pi * radius
+        x_ish = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius
+        track_points[i].append(x_ish)
+        track_points[i].append(y_ish)
         if i==0:
             vx = 0
             vy = 0
         else:
             time_delta = (track_points[i][0]-track_points[i-1][0]).total_seconds()
-            x_prev = track_points[i-1][4]
-            y_prev = track_points[i-1][5]
+            lon_prev = track_points[i-1][2]
+            lat_prev = track_points[i-1][1]
             if time_delta == 0: # old velocities
                 vx = track_points[i-1][6]
                 vy = track_points[i-1][7]
             else:
-                vx = (x-x_prev)/time_delta
-                vy = (y-y_prev)/time_delta
+                vx = (longitude-lon_prev) * math.pi * radius / 180 / time_delta * math.cos(lat*math.pi/180)
+                vy = (lat_prev-latitude) * math.pi * radius / 180 / time_delta
             
         track_points[i].append(vx)
         track_points[i].append(vy)
@@ -129,8 +131,8 @@ def parse_file(file_path, dt):
         fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         
         # Interpolate
-        x = x1 + fraction * (x2 - x1)
-        y = y1 + fraction * (y2 - y1)
+        x_ish = x1 + fraction * (x2 - x1)
+        y_ish = y1 + fraction * (y2 - y1)
         ele = ele1 + fraction * (ele2 - ele1)
         vx = vx1 + fraction * (vx2 - vx1)
         vy = vy1 + fraction * (vy2 - vy1)
@@ -147,16 +149,43 @@ def parse_file(file_path, dt):
         else:
             phi = math.atan2(vy,vx)
 
-        if len(track_points2) > 0: # Just double checking the increments..
-            dt_check = (current_time - track_points2[-1][0]).total_seconds()
-        else:
-            dt_check = dt
-
         # append values to new array
-        track_points2.append([current_time, x, y, ele, v, phi, dt_check, lat, lon, dist])
+        track_points2.append([current_time, x_ish, y_ish, ele, v, phi, lat, lon, dist])
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
+    
+    # Smooth v & elev
+    update_interval_realtime = 0.5
+    interval = timedelta(seconds=speedup*update_interval_realtime)
+    start_time = track_points2[0][0]
+    sum_velocity = 0
+    sum_ele = 0
+    count = 0
+    for i, (timepoint, xish, yish, ele, velocity, *_) in enumerate(track_points2):
+        if timepoint < start_time + interval:
+            # Accumulate velocity
+            sum_velocity += velocity
+            sum_ele += ele
+            count += 1
+        else:
+            # Insert average velocity
+            for j in range(i - count, i):
+                track_points2[j][4] = sum_velocity / count
+                track_points2[j][3] = sum_ele / count
+
+            # Reset interval data for the new interval
+            sum_velocity = velocity
+            sum_ele = ele
+            count = 1
+            start_time = timepoint
+
+    # Update the last interval if not already done
+    if count > 0:
+        for j in range(len(track_points2) - count, len(track_points2)):
+            track_points2[j][4] = sum_velocity / count
+            track_points2[j][3] = sum_ele / count
+
     
     print("Made 2D-array from trackfile")
     return track_points2, track_metadata

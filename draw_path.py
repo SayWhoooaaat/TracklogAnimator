@@ -1,23 +1,16 @@
 import math
 from PIL import ImageDraw
 
-def draw_path(map_metadata, map_image, track_points):
-    m_px = map_metadata[0]
-    x0 = map_metadata[1]
-    y0 = map_metadata[2]
+def draw_path(map_image, track_points):
 
     # Create a drawing object
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
     print("Drawing path on map for fun...")
-    for i in range(0, len(track_points)):
-        x_meters = track_points[i][1]
-        y_meters = track_points[i][2]
-        
-        x = x0 + x_meters / m_px # Mercator imprecise: x0, x_meters, m_px
-        y = y0 + y_meters / m_px # Mercator imprecise: y0, m_px
-
+    for i in range(0, len(track_points)):        
+        x = track_points[i][9]
+        y = track_points[i][10]
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=2)
         last_x, last_y = x, y
