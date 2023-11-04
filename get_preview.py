@@ -15,7 +15,7 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def get_preview(track_points, map_image, map_metadata, outline_image, overlay_width):
+def get_preview(track_points, map_image, map_metadata, outline_image_static, overlay_width):
     print("Making preview image...")
 
     m_px = map_metadata[6]
@@ -32,7 +32,7 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
     path_image = map_image.copy()
     draw = ImageDraw.Draw(path_image)
 
-    endpoint = round(len(track_points)*3/4)
+    endpoint = round(len(track_points)*1/4)
     for i in range(0, endpoint):
         x = track_points[i][9]
         y = track_points[i][10]
@@ -64,6 +64,7 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
     cropped_image.save('media/preview_minimap.png')
 
     # STEP 2: MAKE OUTLINE-MAP FRAME
+    outline_image = outline_image_static.copy()
     for i in range(0, endpoint):
         x_outline = track_points[i][11]
         y_outline = track_points[i][12]
@@ -71,7 +72,7 @@ def get_preview(track_points, map_image, map_metadata, outline_image, overlay_wi
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill='orange', width=1)
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,50), width=1)
         last_x_outline, last_y_outline = x_outline, y_outline
     
     # Draws arrow at the end of path (but doesnt mess with path_image)

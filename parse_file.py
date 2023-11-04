@@ -106,10 +106,11 @@ def parse_file(file_path, dt, speedup):
     # 5-pt distance
     print("Calculating 5-point distances...")
     for i in range(0, len(track_points)):
+        time_delta = (track_points[i][0]-track_points[0][0]).total_seconds()
         if i < 10:
             dist = 0
             previous_best_points = [[track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]], [track_points[0][4], track_points[0][5]]]
-        else:
+        elif time_delta % 30 == 0: # Calculating every 30 s
             xy_positions = [[point[4], point[5]] for point in track_points[:i+1]]
             dist, previous_best_points = get_5pt_distance(xy_positions, previous_best_points)
         if i % 2000 == 0: 
@@ -122,7 +123,7 @@ def parse_file(file_path, dt, speedup):
     current_time = track_points[0][0]
     i = 0 # index of old array
     while current_time < track_points[-1][0]:  # Loop until the last of the original track_points
-    
+        
         # Find the appropriate i such that track_points[i][0] <= current_time < track_points[i+1][0]
         while i < len(track_points) - 1 and current_time >= track_points[i + 1][0]:
             i += 1

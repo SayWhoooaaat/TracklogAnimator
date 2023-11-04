@@ -2,6 +2,7 @@ import math
 from PIL import ImageDraw, ImageFont, Image
 import os
 import subprocess
+import sys
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -80,7 +81,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill='orange', width=1)
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,150), width=1)
         last_x_outline, last_y_outline = x_outline, y_outline
         # Draws arrow at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
@@ -88,7 +89,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
 
         # STEP 3: PUT IMAGES TOGETHER
-        animation_frame = Image.new('RGBA', (width, total_height))
+        animation_frame = Image.new("RGBA", (width, total_height), (0, 0, 0, 0))
         cropped_image = cropped_image.convert("RGBA")
 
         position_minimap = (0, animation_frame.size[1] - cropped_image.size[1])
@@ -115,6 +116,9 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
 
         if i % 300 == 0: 
             print(f"Progress: {round(i/len(track_points)*100)}%")
+        if i == round(len(track_points)/10):
+            animation_frame.save('media/frame_example.png')
+            #sys.exit()
 
     # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
     print("Stitching frames into transparent video...")
