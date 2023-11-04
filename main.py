@@ -1,13 +1,13 @@
 
-track_file = "tracklogs/gpx_loen.gpx"
-speedup = 63
+track_file = "tracklogs/igc_kellett.igc"
+speedup = 121
 fps = 30
-dt = speedup / fps
-
 anim_height = 1080
 overlay_width = 300
-outline_height = 260
-minimap_km = 8
+outline_height = 400
+minimap_km = 2
+
+dt = speedup / fps
 
 
 from parse_file import parse_file

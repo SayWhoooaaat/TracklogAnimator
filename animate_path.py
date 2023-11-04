@@ -44,8 +44,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         
         phi = track_points[i][5]
         # STEP 1: MAKE MINI-MAP FRAME
-        x = track_points[i][9]
-        y = track_points[i][10]
+        x = track_points[i][10]
+        y = track_points[i][11]
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=1)
@@ -76,12 +76,12 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = track_points[i][11]
-        y_outline = track_points[i][12]
+        x_outline = track_points[i][12]
+        y_outline = track_points[i][13]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,150), width=1)
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=1)
         last_x_outline, last_y_outline = x_outline, y_outline
         # Draws arrow at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
@@ -99,9 +99,9 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
         # Drawing text
-        timedate, x, y, ele, v, phi, lat, lon, dist, *_ = track_points[i]
-        current_time = timedate.strftime("%H:%M")
-        current_date = timedate.strftime("%Y-%m-%d")
+        timedate, x, y, ele, v, phi, lat, lon, dist, localtime, *_ = track_points[i]
+        current_time = localtime.strftime("%H:%M")
+        current_date = localtime.strftime("%Y-%m-%d")
 
         draw6 = ImageDraw.Draw(animation_frame)
         draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
@@ -116,9 +116,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
 
         if i % 300 == 0: 
             print(f"Progress: {round(i/len(track_points)*100)}%")
-        if i == round(len(track_points)/10):
+        if i == round(len(track_points)/3):
             animation_frame.save('media/frame_example.png')
-            #sys.exit()
 
     # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
     print("Stitching frames into transparent video...")

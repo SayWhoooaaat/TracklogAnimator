@@ -88,7 +88,7 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     last_point = track_points[0][1], track_points[0][2]
     for point in track_points:
         segment_dist = math.sqrt((point[1]- last_point[0])**2 + (point[2]-last_point[1])**2)
-        if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled 2 km ish
+        if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled half map length
             last_point = point[1], point[2]
             x_tile, y_tile = lat_lon_to_tile_coords(point[6], point[7], zoom)
             for x in range(x_tile - 1, x_tile + 2):

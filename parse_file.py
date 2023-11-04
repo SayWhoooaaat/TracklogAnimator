@@ -3,6 +3,8 @@ import math
 from datetime import datetime
 from datetime import timedelta
 import random
+from timezonefinder import TimezoneFinder
+from zoneinfo import ZoneInfo
 
 def total_distance(points):
     dist = 0
@@ -180,13 +182,20 @@ def parse_file(file_path, dt, speedup):
             sum_ele = ele
             count = 1
             start_time = timepoint
-
+    
     # Update the last interval if not already done
     if count > 0:
         for j in range(len(track_points2) - count, len(track_points2)):
             track_points2[j][4] = sum_velocity / count
             track_points2[j][3] = sum_ele / count
-
+    
+    # Add local time
+    tf = TimezoneFinder()
+    timezone_str = tf.timezone_at(lat=track_points2[0][6], lng=track_points2[0][7])
+    for point in track_points2:
+        utc_time = point[0]
+        local_time = utc_time.replace(tzinfo=ZoneInfo('UTC')).astimezone(ZoneInfo(timezone_str))
+        point.append(local_time)
     
     print("Made 2D-array from trackfile")
     return track_points2, track_metadata
