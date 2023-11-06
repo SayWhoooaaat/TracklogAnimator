@@ -20,12 +20,14 @@ def check_image_cache(x, y, zoom):
 def get_tile_image_mapbox(x, y, zoom, max_retries=3):
     load_dotenv()
     api_token = os.getenv('MAPBOX_API_TOKEN')  # Get my API key
-    base_url = 'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles'
+    #tile_type = 'mapbox/satellite-v9' # Standard satellite map
+    #tile_type = 'saywhoooaaat/clok9xop3006701qy7n8s8s8t' # Custom outdoors-map
+    tile_type = 'saywhoooaaat/clok9ytkg006501pl9gima19q' # Custom satellite-map
+    base_url = f"https://api.mapbox.com/styles/v1/{tile_type}/tiles"
     url = f"{base_url}/{zoom}/{x}/{y}?access_token={api_token}"
 
     # Check cache first
-    # cache_key = md5(url.encode('utf-8')).hexdigest()
-    cache_key = md5(f"{zoom}/{x}/{y}".encode('utf-8')).hexdigest()
+    cache_key = md5(f"{tile_type}/{zoom}/{x}/{y}".encode('utf-8')).hexdigest()
     cache_path = f"tile_cache/{cache_key}.png"
     if os.path.exists(cache_path):
         return Image.open(cache_path)
