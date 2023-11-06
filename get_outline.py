@@ -34,7 +34,7 @@ def get_bounding_coordinates(coords):
 
 
 # Function saves section of map from extreme coordinates
-def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
+def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
 
     bbox = box(lon_min, lat_min, lon_max, lat_max)
     # Load GeoJSON of World Countries
@@ -56,6 +56,10 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
     project = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:3395", always_xy=True).transform
     bbox_mercator = transform(project, bbox) # Convert the bounding box to Mercator
     bbox_minx, bbox_miny, bbox_maxx, bbox_maxy = bbox_mercator.bounds
+
+    height = width * (bbox_maxy - bbox_miny) / (bbox_maxx - bbox_minx)
+    height = min(int(height+1), height_max)
+
     x_scale = (bbox_maxx - bbox_minx) / width
     y_scale = (bbox_maxy - bbox_miny) / height
     scale = max(x_scale, y_scale)
@@ -88,9 +92,10 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height):
                 draw.polygon(list(zip(normalized_x, normalized_y)), fill=None, outline=(255, 255, 255, 255))
 
     img.save("media/country_outline.png")
-    return (img, adjusted_bbox.bounds)
+    return (img, adjusted_bbox.bounds, height)
 
-def get_outline(track_points, width, height):
+def get_outline(track_points, width, anim_height):
+    height_max = anim_height - width - 150
     coords = [(point[6], point[7]) for point in track_points]
 
     print("Finding country...")
@@ -102,7 +107,7 @@ def get_outline(track_points, width, height):
     lat_max = lat_max + (lat_max - lat_min) * padding_percentage / 100
     
     print("Generating country outline...")
-    outline_image, bounding_coords = get_borders(lat_min, lat_max, lon_min, lon_max, width, height)
+    outline_image, bounding_coords, height = get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max)
     lon_min, lat_min, lon_max, lat_max = bounding_coords
     print("Saved country map")
     

@@ -13,7 +13,8 @@ if not os.path.exists('tile_cache'):
     os.makedirs('tile_cache')
 
 def check_image_cache(x, y, zoom):
-    cache_key = md5(f"{zoom}/{x}/{y}".encode('utf-8')).hexdigest()
+    tile_type = 'saywhoooaaat/clok9ytkg006501pl9gima19q'
+    cache_key = md5(f"{tile_type}/{zoom}/{x}/{y}".encode('utf-8')).hexdigest()
     cache_path = f"tile_cache/{cache_key}.png"
     return os.path.exists(cache_path) # Returns true or false
 
