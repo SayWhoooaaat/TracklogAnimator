@@ -3,6 +3,10 @@ from PIL import ImageDraw, ImageFont, Image
 import os
 import subprocess
 import sys
+import json
+import time
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -18,7 +22,7 @@ def get_ruler_km(map_km):
 
 
 def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width, total_height):
-    
+    transparent = False
     m_px = map_metadata[6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
@@ -39,9 +43,28 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     temp_folder = 'temp_frames'
     os.makedirs(temp_folder, exist_ok=True)
 
-    print("Making animation frames...")
+    # Estimate time
+    start_time = time.time()
+    timing_data_file = 'timing_data.json'
+    try:
+        with open(timing_data_file, 'r') as f:
+            timing_data = json.load(f)
+            times = np.array([row[0] + row[1] for row in timing_data][-8:])
+            lens = np.array([row[2] for row in timing_data][-8:])
+            pixels = np.array([row[3] for row in timing_data][-8:])
+            X = np.vstack((lens, lens * pixels)).T
+            model = LinearRegression()
+            model.fit(X, times)
+            a, b = model.coef_
+            c = model.intercept_
+            est_time = len(track_points) * a * (1 + path_image.size[0] * path_image.size[1] * b) + c
+    except:
+        timing_data = []
+        est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0)
+    
+    print(f"Making animation frames. Estimating {round(est_time/60)} minutes...") 
+    # Saving frames to pngs
     for i in range(0, len(track_points)):
-        
         phi = track_points[i][5]
         # STEP 1: MAKE MINI-MAP FRAME
         x = track_points[i][10]
@@ -119,23 +142,42 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         if i == round(len(track_points)/3):
             animation_frame.save('media/frame_example.png')
 
+    time_inbetween = time.time()
+
     # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
-    print("Stitching frames into transparent video...")
-    ffmpeg_command = [
-        'ffmpeg',
-        '-y',
-        '-framerate', str(fps),
-        '-i', f'{temp_folder}/frame_%06d.png',
-        '-vcodec', 'prores_ks',
-        '-profile:v', '4444',  # This is for ProRes 4444
-        '-pix_fmt', 'yuva444p10le',  # This enables the alpha channel
-        'media/animation.mov'
-    ]
+    print("Stitching frames to video...")
+    if transparent == True:
+        ffmpeg_command = [
+            'ffmpeg',
+            '-y',
+            '-framerate', str(fps),
+            '-i', f'{temp_folder}/frame_%06d.png',
+            '-vcodec', 'prores_ks',
+            '-profile:v', '4444',  # This is for ProRes 4444
+            '-pix_fmt', 'yuva444p10le',  # This enables the alpha channel
+            'media/animation.mov'
+        ]
+    else:
+        ffmpeg_command = [
+            'ffmpeg',
+            '-y',
+            '-framerate', str(fps),
+            '-i', f'{temp_folder}/frame_%06d.png',
+            '-vcodec', 'prores_ks',
+            '-profile:v', '4444',  # This is for ProRes 4444
+            '-pix_fmt', 'yuv444p10le',  # No alpha channel
+            'media/animation.mov'
+        ]
     subprocess.run(ffmpeg_command)
 
     # Remove temporary frames
     for file_name in os.listdir(temp_folder):
         os.remove(os.path.join(temp_folder, file_name))
     #os.rmdir(temp_folder)
+
+    # Save spent time
+    with open(timing_data_file, 'w') as f:
+        timing_data.append([time_inbetween-start_time, time.time() - time_inbetween, len(track_points), path_image.size[0] * path_image.size[1]])
+        json.dump(timing_data, f)
 
     return

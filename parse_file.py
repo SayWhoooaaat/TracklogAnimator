@@ -5,6 +5,8 @@ from datetime import timedelta
 import random
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
+import time
+import sys
 
 def total_distance(points):
     dist = 0
@@ -16,24 +18,58 @@ def total_distance(points):
 
 def get_5pt_distance(xy_positions, previous_best_points):
     temp = 10000
-    cooling_rate = 0.8 # 0.995 = 1800 iter. 0.98 = 450 iter. 0.8 = 41
+    cooling_rate = 0.9 # 0.995 = 1800 iter. 0.98 = 450 iter. 0.8 = 41
 
+    last_index = len(xy_positions)
     current_points = previous_best_points[0:4] + [xy_positions[-1]]
     current_distance = total_distance(current_points)
     best_points = current_points
     best_distance = current_distance
     
-    while temp > 1: # Seems stupid. Takes random points and checks if they are better..
-        sampled_indexes = sorted(random.sample(range(1, len(xy_positions) - 1), 3))
+    while temp > 1: # Takes random points and checks their distance
+        sampled_indexes = sorted(random.sample(range(1, last_index - 1), 3))
         new_points = [xy_positions[i] for i in [0] + sampled_indexes + [-1]]
         new_distance = total_distance(new_points)
         
         if new_distance > current_distance or math.exp((new_distance - current_distance) / temp) > random.random():
+            # Checking combination if close to previous best
+            
+            # Do local maxima-algorithm
+            p1, p2_old, p3_old, p4_old, p5 = new_points
+            k=4.1
+            old_ind_p2, old_ind_p3, old_ind_p4 = sampled_indexes # index
+            di_2 = di_3 = di_4 = 30 # 30-90 seconds
+            index_p2 = max(1, min(old_ind_p2 + di_2, old_ind_p3 - 1))
+            index_p3 = max(index_p2, min(old_ind_p3 + di_3, old_ind_p4 - 1))
+            index_p4 = max(index_p3, min(old_ind_p4 + di_4, last_index - 1))
+            for i in range(300):
+                d_old = total_distance([p1, p2_old, p3_old, p4_old, p5])
+                # Find new x,y-positions
+                p2_new = xy_positions[index_p2] # x,y value
+                p3_new = xy_positions[index_p3]
+                p4_new = xy_positions[index_p4]
+                # Find improvement with new indexes
+                dist_p2_new = total_distance([p1, p2_new, p3_old, p4_old, p5]) # meters
+                dist_p3_new = total_distance([p1, p2_old, p3_new, p4_old, p5])
+                dist_p4_new = total_distance([p1, p2_old, p3_old, p4_new, p5])
+                # Find new indexes based on improvements
+                di_2 = (dist_p2_new - d_old) / di_2 * k # like 2 meters/iteration -ish
+                if di_2 == 0: di_2 = 1
+                index_p2 = max(1, min(round(index_p2 + di_2), index_p3 - 1))
+                di_3 = (dist_p3_new - d_old) / di_3 * k
+                if di_3 == 0: di_3 = 1
+                index_p3 = max(index_p2, min(round(index_p3 + di_3), index_p4 - 1))
+                di_4 = (dist_p4_new - d_old) / di_4 * k
+                if di_4 == 0: di_4 = 1
+                index_p4 = max(index_p3, min(round(index_p4 + di_4), last_index - 1))
+                # New becomes old for next iteration
+                p2_old, p3_old, p4_old = p2_new, p3_new, p4_new
+
+            new_points = [p1, p2_old, p3_old, p4_old, p5]
+            new_distance = total_distance([p1, p2_new, p3_new, p4_new, p5])
             current_points = new_points
             current_distance = new_distance
 
-            # Do local maxima-algorithm
-            
             if new_distance > best_distance:
                 best_points = new_points
                 best_distance = new_distance
@@ -106,6 +142,7 @@ def parse_file(file_path, dt, speedup):
         track_points[i].append(vy)
 
     # 5-pt distance
+    time1 = time.time()
     print("Calculating 5-point distances...")
     for i in range(0, len(track_points)):
         time_delta = (track_points[i][0]-track_points[0][0]).total_seconds()
@@ -118,6 +155,9 @@ def parse_file(file_path, dt, speedup):
         if i % 2000 == 0: 
             print(f"Progress: {round(i/len(track_points)*100)}%")
         track_points[i].append(dist)
+    time2 = time.time()
+    print(f"5-pt algorithm: {round(time2-time1,1)} seconds, {round(dist/1000,2)} km")
+
     print(f"Best 5-point distance: {round(dist/1000)} km. Finishing 2D-array...")
 
     # Making contant interval matrix
