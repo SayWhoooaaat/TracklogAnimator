@@ -31,7 +31,7 @@ def get_5pt_distance(xy_positions, previous_best_points):
         new_points = [xy_positions[i] for i in [0] + sampled_indexes + [-1]]
         new_distance = total_distance(new_points)
         
-        if new_distance > current_distance or math.exp((new_distance - current_distance) / temp) > random.random():
+        if (new_distance > current_distance) or (math.exp((new_distance - current_distance) / temp) > random.random()):
             # Checking combination if close to previous best
             
             # Do local maxima-algorithm
@@ -156,7 +156,7 @@ def parse_file(file_path, dt, speedup):
             print(f"Progress: {round(i/len(track_points)*100)}%")
         track_points[i].append(dist)
     time2 = time.time()
-    print(f"5-pt algorithm: {round(time2-time1,1)} seconds, {round(dist/1000,2)} km")
+    #print(f"5-pt algorithm: {round(time2-time1,1)} seconds, {round(dist/1000,2)} km")
 
     print(f"Best 5-point distance: {round(dist/1000)} km. Finishing 2D-array...")
 

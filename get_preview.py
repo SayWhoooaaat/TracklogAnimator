@@ -1,6 +1,7 @@
 import math
 from PIL import Image, ImageDraw, ImageFont
 import sys
+import json
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -104,10 +105,7 @@ def get_preview(track_points, map_image, map_metadata, outline_image_static, ove
     draw6.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
     base_image.save("media/preview.png")
-    user_input = input("Preview saved. Proceed? (y/n): ")
-    if user_input.lower() != 'y':
-        print("Terminating program.")
-        sys.exit()
+    print("Preview saved.")
 
     return
 

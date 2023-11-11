@@ -1,10 +1,10 @@
 
-track_file = "tracklogs/boiesen.gpx"
-speedup = 40
+track_file = "tracklogs/gpx_loen.gpx"
+speedup = 25
 fps = 30
 anim_height = 1080
 overlay_width = 300
-minimap_km = 7
+minimap_km = 4
 # Speedup should be 25. minimap_km should be 4-6. 
 
 dt = speedup / fps

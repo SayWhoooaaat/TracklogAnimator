@@ -5,8 +5,6 @@ import subprocess
 import sys
 import json
 import time
-import numpy as np
-from sklearn.linear_model import LinearRegression
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -44,25 +42,25 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     os.makedirs(temp_folder, exist_ok=True)
 
     # Estimate time
-    start_time = time.time()
     timing_data_file = 'timing_data.json'
     try:
         with open(timing_data_file, 'r') as f:
             timing_data = json.load(f)
-            times = np.array([row[0] + row[1] for row in timing_data][-8:])
-            lens = np.array([row[2] for row in timing_data][-8:])
-            pixels = np.array([row[3] for row in timing_data][-8:])
-            X = np.vstack((lens, lens * pixels)).T
-            model = LinearRegression()
-            model.fit(X, times)
-            a, b = model.coef_
-            c = model.intercept_
-            est_time = len(track_points) * a * (1 + path_image.size[0] * path_image.size[1] * b) + c
+            corr_factor = 0
+            for estimate in timing_data:
+                corr_factor += estimate[0] / estimate[1]
+            corr_factor = corr_factor / len(timing_data)
     except:
         timing_data = []
-        est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0)
+        corr_factor = 1
+    est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0) * corr_factor
     
-    print(f"Making animation frames. Estimating {round(est_time/60)} minutes...") 
+    user_input = input(f"Estimating {round(est_time/60)} minutes to animate. Proceed? (y/n): ")
+    if user_input.lower() != 'y':
+        print("Terminating program.")
+        sys.exit()
+    start_time = time.time()
+
     # Saving frames to pngs
     for i in range(0, len(track_points)):
         phi = track_points[i][5]
@@ -137,12 +135,11 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')
         animation_frame.save(frame_path, 'PNG')
 
-        if i % 300 == 0: 
-            print(f"Progress: {round(i/len(track_points)*100)}%")
+        if (i % 600 == 0) and (i != 0): 
+            time_left = (time.time() - start_time) * (len(track_points) / i - 1)
+            print(f"Progress: {round(i/len(track_points)*100)}%, {round(time_left/60)} min remaining...")
         if i == round(len(track_points)/3):
             animation_frame.save('media/frame_example.png')
-
-    time_inbetween = time.time()
 
     # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
     print("Stitching frames to video...")
@@ -176,8 +173,11 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     #os.rmdir(temp_folder)
 
     # Save spent time
+    data_limit = 20
     with open(timing_data_file, 'w') as f:
-        timing_data.append([time_inbetween-start_time, time.time() - time_inbetween, len(track_points), path_image.size[0] * path_image.size[1]])
+        timing_data.append([time.time()-start_time, est_time])
+        if len(timing_data) > data_limit:
+            timing_data = timing_data[-data_limit:]
         json.dump(timing_data, f)
 
     return
