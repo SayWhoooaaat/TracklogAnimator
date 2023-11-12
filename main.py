@@ -1,6 +1,6 @@
 
-track_file = "tracklogs/gpx_loen.gpx"
-speedup = 25
+track_file = "tracklogs/kellett.igc"
+speedup = 121
 fps = 30
 anim_height = 1080
 overlay_width = 300

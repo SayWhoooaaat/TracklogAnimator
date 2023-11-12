@@ -4,36 +4,79 @@ from shapely.ops import unary_union, transform
 from PIL import Image, ImageDraw
 import pyproj
 import math
+import sys
 
-# Fundtion finds extreme coordinates on country/island from coordinate list
+# Fundtion finds bounding coordinates on country/island from coordinate list
 def get_bounding_coordinates(coords):
     world_gdf = gpd.read_file("countries.geojson")
-    # Create a GeoDataFrame from the list of coordinates
     track_gdf = gpd.GeoDataFrame(geometry=[Point(coord[1], coord[0]) for coord in coords])
     track_gdf.crs = "EPSG:4326"
     
-    # Decompose MultiPolygons into individual polygons
+    # Decompose MultiPolygons into individual polygons and include country name
     all_polygons = []
+    country_names = []
     for _, row in world_gdf.iterrows():
         geom = row.geometry
+        admin = row['ADMIN']
         if isinstance(geom, Polygon):
             all_polygons.append(geom)
+            country_names.append(admin)
         elif isinstance(geom, MultiPolygon):
-            all_polygons.extend(list(geom.geoms))
+            for sub_geom in geom.geoms:
+                all_polygons.append(sub_geom)
+                country_names.append(admin)
     
-    decomposed_gdf = gpd.GeoDataFrame(geometry=all_polygons, crs=world_gdf.crs)
+    decomposed_gdf = gpd.GeoDataFrame({'geometry': all_polygons, 'ADMIN': country_names}, crs=world_gdf.crs)
     
     # Perform the spatial join
     joined = gpd.sjoin(track_gdf, decomposed_gdf, how="inner", predicate="within")
-    
-    # Get the individual polygons that contain the points
-    containing_polygons = decomposed_gdf.loc[joined['index_right'], 'geometry'].unique()
+
+    # Create a dictionary to count intersecting polygons per country
+    country_dict = {}
+    for index in joined.index_right.unique():
+        country_name = decomposed_gdf.loc[index, 'ADMIN']  # Now we use decomposed_gdf
+        country_dict[country_name] = country_dict.get(country_name, 0) + 1
+
     # Combine the polygons into one
-    combined_polygon = unary_union(containing_polygons)
-    return combined_polygon.bounds
+    combined_polygon = unary_union([decomposed_gdf.loc[index, 'geometry'] for index in joined.index_right.unique()])
+
+    return combined_polygon.bounds, country_dict
 
 
-# Function saves section of map from extreme coordinates
+def find_countries(lon_min, lat_min, lon_max, lat_max):
+    # Load the GeoJSON file into a GeoDataFrame
+    world_gdf = gpd.read_file("countries.geojson")
+
+    bbox = box(lon_min, lat_min, lon_max, lat_max)
+
+    # Dictionary to store information about countries
+    # Each entry will hold a list of tuples: (count, [(inside_point_lat, inside_point_lon)])
+    country_info = {}
+    for _, row in world_gdf.iterrows():
+        geom = row['geometry']
+        admin = row['ADMIN']  # Country name
+        if isinstance(geom, MultiPolygon):
+            for poly in geom.geoms:
+                if poly.intersects(bbox):
+                    inside_point = poly.representative_point()
+                    if admin in country_info:
+                        country_info[admin][0] += 1  # Increment count
+                        country_info[admin][1].append((inside_point.y, inside_point.x))  # Append inside point lat, lon
+                    else:
+                        country_info[admin] = [1, [(inside_point.y, inside_point.x)]]  # Initialize count and inside point list
+        elif isinstance(geom, Polygon):
+            if geom.intersects(bbox):
+                inside_point = geom.representative_point()
+                if admin in country_info:
+                    country_info[admin][0] += 1
+                    country_info[admin][1].append((inside_point.y, inside_point.x))
+                else:
+                    country_info[admin] = [1, [(inside_point.y, inside_point.x)]]
+
+    return country_info
+
+
+# Function saves section of map from bounding coordinates
 def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
 
     bbox = box(lon_min, lat_min, lon_max, lat_max)
@@ -99,8 +142,47 @@ def get_outline(track_points, width, anim_height):
     coords = [(point[6], point[7]) for point in track_points]
 
     print("Finding country...")
-    lon_min, lat_min, lon_max, lat_max = get_bounding_coordinates(coords)
-    padding_percentage = 2 # Add padding around coordinates
+    bounds, countries = get_bounding_coordinates(coords)
+    lon_min, lat_min, lon_max, lat_max = bounds
+
+    # Logic for increasing size if island:
+    radius = 6371.0 # km
+    polygon_height = (lat_max - lat_min) / 180 * math.pi * radius
+    polygon_width = (lon_max - lon_min) / 180 * math.pi * math.cos((lat_min + lat_max)/2/180*math.pi) * radius
+    threshold = 100
+    th2 = 200
+    if (polygon_width < threshold) and (polygon_height < threshold):
+        # Small island. Check larger 200x200 km square
+        lon = (lon_max + lon_min) / 2
+        lat = (lat_max + lat_min) / 2
+        lat_max = lat + th2/2 / radius * 180 / math.pi
+        lat_min = lat - th2/2 / radius * 180 / math.pi
+        lon_max = lon + th2/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
+        lon_min = lon - th2/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
+        countries2 = find_countries(lon_min, lat_min, lon_max, lat_max)
+        
+        # See if more polygons for relevant countries
+        rescale_huge = False
+        for country, count in countries.items():
+            newislands = countries2.get(country, 0)
+            count2 = newislands[0]
+            newcoords = newislands[1:]
+            if count2 > count:
+                # We have more islands of same country
+                # Rescale to include all these islands 
+                rescale_huge = True
+                for lat, lon in newcoords[0]:
+                    coords.append((lat, lon))
+                bounds, countries = get_bounding_coordinates(coords)
+                lon_min, lat_min, lon_max, lat_max = bounds
+        
+        # See if nothing more has been added
+        if (len(countries2) == len(countries)) and (rescale_huge == False):
+            # Lonely island. Revert to original coordinates
+            lon_min, lat_min, lon_max, lat_max = bounds
+
+    # Add padding around coordinates
+    padding_percentage = 2 
     lon_min = lon_min - (lon_max - lon_min) * padding_percentage / 100
     lon_max = lon_max + (lon_max - lon_min) * padding_percentage / 100
     lat_min = lat_min - (lat_max - lat_min) * padding_percentage / 100
