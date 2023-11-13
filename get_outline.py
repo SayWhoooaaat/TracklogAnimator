@@ -47,33 +47,37 @@ def find_countries(lon_min, lat_min, lon_max, lat_max):
     # Load the GeoJSON file into a GeoDataFrame
     world_gdf = gpd.read_file("countries.geojson")
 
+    # Reproject to a CRS that allows for area calculation (equal-area projection)
+    world_gdf = world_gdf.to_crs('EPSG:6933')  # EPSG:6933 is an equal-area projection
+
     bbox = box(lon_min, lat_min, lon_max, lat_max)
+    project = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:6933", always_xy=True).transform
+    bbox = transform(project, bbox)
+
+    # Transformer to convert back to WGS84
+    project_back = pyproj.Transformer.from_crs("EPSG:6933", "EPSG:4326", always_xy=True).transform
 
     # Dictionary to store information about countries
-    # Each entry will hold a list of tuples: (count, [(inside_point_lat, inside_point_lon)])
-    country_info = {}
+    polygon_dict = {}
     for _, row in world_gdf.iterrows():
         geom = row['geometry']
         admin = row['ADMIN']  # Country name
-        if isinstance(geom, MultiPolygon):
-            for poly in geom.geoms:
+        if isinstance(geom, MultiPolygon) or isinstance(geom, Polygon):
+            geoms_to_check = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
+            for poly in geoms_to_check:
                 if poly.intersects(bbox):
-                    inside_point = poly.representative_point()
-                    if admin in country_info:
-                        country_info[admin][0] += 1  # Increment count
-                        country_info[admin][1].append((inside_point.y, inside_point.x))  # Append inside point lat, lon
-                    else:
-                        country_info[admin] = [1, [(inside_point.y, inside_point.x)]]  # Initialize count and inside point list
-        elif isinstance(geom, Polygon):
-            if geom.intersects(bbox):
-                inside_point = geom.representative_point()
-                if admin in country_info:
-                    country_info[admin][0] += 1
-                    country_info[admin][1].append((inside_point.y, inside_point.x))
-                else:
-                    country_info[admin] = [1, [(inside_point.y, inside_point.x)]]
+                    # Get the centroid of the intersecting polygon in the 6933 projection
+                    centroid = poly.representative_point()  # Use 'poly' instead of 'geom'
+                    lon, lat = project_back(centroid.x, centroid.y)
+                    area = poly.area / 10**6  # Convert area from square meters to square kilometers
+                    if admin not in polygon_dict:
+                        polygon_dict[admin] = {'count': 0, 'points': [], 'areas': []}
+                    # Update country information
+                    polygon_dict[admin]['count'] += 1
+                    polygon_dict[admin]['points'].append((lat, lon))
+                    polygon_dict[admin]['areas'].append(area)
 
-    return country_info
+    return polygon_dict
 
 
 # Function saves section of map from bounding coordinates
@@ -139,11 +143,24 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
 
 def get_outline(track_points, width, anim_height):
     height_max = anim_height - width - 150
-    coords = [(point[6], point[7]) for point in track_points]
+    # Simplify tracklog
+    timeinterval = 120
+    current_time = track_points[0][0]
+    coords = []
+    for point in track_points:
+        if (point[0] - current_time).total_seconds() > timeinterval:
+            current_time = point[0]
+            coords.append((point[6], point[7]))
 
     print("Finding country...")
     bounds, countries = get_bounding_coordinates(coords)
     lon_min, lat_min, lon_max, lat_max = bounds
+
+    # Find polygon area
+    polygon_dict = find_countries(lon_min, lat_min, lon_max, lat_max)
+    area = 0
+    for country_dict in polygon_dict.values():
+        area += sum(country_dict['areas'])
 
     # Logic for increasing size if island:
     radius = 6371.0 # km
@@ -159,27 +176,66 @@ def get_outline(track_points, width, anim_height):
         lat_min = lat - th2/2 / radius * 180 / math.pi
         lon_max = lon + th2/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
         lon_min = lon - th2/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
-        countries2 = find_countries(lon_min, lat_min, lon_max, lat_max)
-        
+        polygon_dict2 = find_countries(lon_min, lat_min, lon_max, lat_max)
         # See if more polygons for relevant countries
         rescale_huge = False
         for country, count in countries.items():
-            newislands = countries2.get(country, 0)
-            count2 = newislands[0]
-            newcoords = newislands[1:]
+            country_info = polygon_dict2.get(country)
+            count2 = country_info.get('count')
+            coords2 = country_info.get('points')
             if count2 > count:
                 # We have more islands of same country
                 # Rescale to include all these islands 
                 rescale_huge = True
-                for lat, lon in newcoords[0]:
+                # Adding coordinates of islands of same country
+                for lat, lon in coords2:
                     coords.append((lat, lon))
                 bounds, countries = get_bounding_coordinates(coords)
                 lon_min, lat_min, lon_max, lat_max = bounds
+                # Find polygon area
+                polygon_dict = find_countries(lon_min, lat_min, lon_max, lat_max)
+                area = 0
+                for country_dict in polygon_dict.values():
+                    area += sum(country_dict['areas'])
         
-        # See if nothing more has been added
-        if (len(countries2) == len(countries)) and (rescale_huge == False):
-            # Lonely island. Revert to original coordinates
+        # If nothing more has been added
+        if (len(polygon_dict2) == len(countries)) and (rescale_huge == False):
+            # Remote island. Revert to original coordinates
             lon_min, lat_min, lon_max, lat_max = bounds
+    bounds = [lon_min, lat_min, lon_max, lat_max]
+
+    # Check if large island of same country nearby
+    rescale_huge = False
+    th3 = 1000
+    lon = (lon_max + lon_min) / 2
+    lat = (lat_max + lat_min) / 2
+    lat_max = lat + th3/2 / radius * 180 / math.pi
+    lat_min = lat - th3/2 / radius * 180 / math.pi
+    lon_max = lon + th3/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
+    lon_min = lon - th3/2 / radius * 180 / math.pi / math.cos(lat/180*math.pi)
+    polygon_dict2 = find_countries(lon_min, lat_min, lon_max, lat_max)
+    # See if more polygons for relevant countries
+    for country, count in countries.items():
+        country_info = polygon_dict2.get(country)
+        count2 = country_info.get('count')
+        coords2 = country_info.get('points')
+        area2 = country_info.get('areas')
+        if count2 > count:
+            # We have more islands of same country
+            # Checking if they are big enough to include
+            for i in range(0, len(coords2)):
+                polygon_area = area2[i]
+                lat, lon = coords2[i]
+                if polygon_area > area * 0.3:
+                    # Huge land area, must include in outline
+                    rescale_huge = True
+                    coords.append((lat, lon))
+    if rescale_huge == True:
+        bounds, countries = get_bounding_coordinates(coords)
+        lon_min, lat_min, lon_max, lat_max = bounds
+    else:
+        # No large island to include, use initial coordinates. 
+        lon_min, lat_min, lon_max, lat_max = bounds
 
     # Add padding around coordinates
     padding_percentage = 2 

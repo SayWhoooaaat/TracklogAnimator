@@ -20,7 +20,7 @@ def get_ruler_km(map_km):
 
 
 def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width, total_height):
-    transparent = False
+    transparent = True
     m_px = map_metadata[6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
