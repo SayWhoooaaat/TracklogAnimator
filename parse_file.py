@@ -18,7 +18,7 @@ def total_distance(points):
 
 def get_5pt_distance(xy_positions, previous_best_points):
     temp = 10000
-    cooling_rate = 0.9 # 0.995 = 1800 iter. 0.98 = 450 iter. 0.8 = 41
+    cooling_rate = 0.8 # 0.995 = 1800 iter. 0.98 = 450 iter. 0.8 = 41
 
     last_index = len(xy_positions)
     current_points = previous_best_points[0:4] + [xy_positions[-1]]
@@ -42,7 +42,7 @@ def get_5pt_distance(xy_positions, previous_best_points):
             index_p2 = max(1, min(old_ind_p2 + di_2, old_ind_p3 - 1))
             index_p3 = max(index_p2, min(old_ind_p3 + di_3, old_ind_p4 - 1))
             index_p4 = max(index_p3, min(old_ind_p4 + di_4, last_index - 1))
-            for i in range(300):
+            for i in range(50): # 300
                 d_old = total_distance([p1, p2_old, p3_old, p4_old, p5])
                 # Find new x,y-positions
                 p2_new = xy_positions[index_p2] # x,y value

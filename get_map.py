@@ -63,48 +63,47 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     lon_min = track_metadata['min_longitude']
     lon_max = track_metadata['max_longitude']
 
-    # Calculate zoom
+    # Calculate max zoom
     tile_img = get_tile_image_mapbox(2,1,2)
     cell_size = tile_img.size[0]
     n = 40075.0 / anim_km * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
-    zoom = round(math.log2(n))
-    n = 2 ** zoom
+    zoom_max = round(math.log2(n))
+    n = 2 ** zoom_max
     anim_km_actual = 40075.0 / n * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
-    print(f"Mini-map size = {round(anim_km_actual,2)} km")
 
-    # Create a blank image big enough
-    x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
-    x_max, y_min = lat_lon_to_tile_coords(lat_max, lon_max, zoom)
-    num_tiles_x = x_max - x_min + 3
-    num_tiles_y = y_max - y_min + 3
-    width, height = num_tiles_x * cell_size, num_tiles_y * cell_size
-    map_img = Image.new('RGB', (width, height))
+    # Calculate min zoom
+    n2 = anim_pixels / cell_size * 360 / max(lon_max - lon_min, (lat_max - lat_min) / math.cos((lat_max+lat_min)/2*math.pi/180))
+    zoom_min = int(math.log2(n2))
+    print(lat_min, lat_max, lon_min, lon_max, n2)
+    print(f"zoom_max = {zoom_max}, zoom_min = {zoom_min}")
 
     # Make list of needed tiles
     tile_list = []
-    # List first 9 tiles
-    x_tile, y_tile = lat_lon_to_tile_coords(track_points[0][6], track_points[0][7], zoom)
-    for x in range(x_tile - 1, x_tile + 2):
-        for y in range(y_tile - 1, y_tile + 2):
-            tile_list.append([x, y])
-    # List other tiles
-    last_point = track_points[0][1], track_points[0][2]
-    for point in track_points:
-        segment_dist = math.sqrt((point[1]- last_point[0])**2 + (point[2]-last_point[1])**2)
-        if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled half map length
-            last_point = point[1], point[2]
-            x_tile, y_tile = lat_lon_to_tile_coords(point[6], point[7], zoom)
-            for x in range(x_tile - 1, x_tile + 2):
-                for y in range(y_tile - 1, y_tile + 2):
-                    # Add to tile_list if not already included
-                    if [x, y] not in tile_list:
-                        tile_list.append([x, y])
+    map_images = []
+    for zoom in range(zoom_max, zoom_min - 1, -1):
+        # List first 9 tiles
+        x_tile, y_tile = lat_lon_to_tile_coords(track_points[0][6], track_points[0][7], zoom)
+        for x in range(x_tile - 1, x_tile + 2):
+            for y in range(y_tile - 1, y_tile + 2):
+                tile_list.append([x, y, zoom])
+        # List other tiles
+        last_point = track_points[0][1], track_points[0][2]
+        for point in track_points:
+            segment_dist = math.sqrt((point[1]- last_point[0])**2 + (point[2]-last_point[1])**2)
+            if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled half map length
+                last_point = point[1], point[2]
+                x_tile, y_tile = lat_lon_to_tile_coords(point[6], point[7], zoom)
+                for x in range(x_tile - 1, x_tile + 2):
+                    for y in range(y_tile - 1, y_tile + 2):
+                        # Add to tile_list if not already included
+                        if [x, y, zoom] not in tile_list:
+                            tile_list.append([x, y, zoom])
     print(f"Need {len(tile_list)} tiles")
     
     # Checking how many tiles to download
     download_list = []
     for tile in tile_list:
-        has_tile = check_image_cache(tile[0], tile[1], zoom)
+        has_tile = check_image_cache(tile[0], tile[1], tile[2])
         if has_tile == False:
             download_list.append(tile)
     if len(download_list) > 0:
@@ -116,25 +115,45 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
         print("All tiles are stored in cache. Stitching image...")
     
     # Downloading maps
-    for point in tile_list:
-        x, y = point
-        tile_img = get_tile_image_mapbox(x, y, zoom)
-        if tile_img is not None:  # Pasting
-            map_img.paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
-
-    # Save the stitched map image
-    map_img.save('media/map_stitched.png')
-    print("Saved map")
-
-    # Calculate map_metadata
-    radius = 6371000.0
-    m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
+    map_metadata = []
+    for zoom in range(zoom_max, zoom_min - 1, -1):
+        i = zoom_max - zoom
+        # Create a blank image big enough
+        x_min, y_max = lat_lon_to_tile_coords(lat_min, lon_min, zoom)
+        x_max, y_min = lat_lon_to_tile_coords(lat_max, lon_max, zoom)
+        num_tiles_x = x_max - x_min + 3
+        num_tiles_y = y_max - y_min + 3
+        width, height = num_tiles_x * cell_size, num_tiles_y * cell_size
+        map_images.append(Image.new('RGB', (width, height)))
+        #map_images[i] = Image.new('RGB', (width, height))
+        for point in tile_list:
+            if point[2] == zoom:
+                x, y, zoom = point
+                tile_img = get_tile_image_mapbox(x, y, zoom)
+                if tile_img is not None:  # Pasting
+                    map_images[i].paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
+        # Save the stitched map image
+        map_images[i].save(f'media/map_stitched{i}.png')
     
-    lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180
-    lon_max_tile = (x_max + 2) * 360 / 2.0**zoom - 180
-    lat_max_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_min - 1) / 2.0**zoom))) - math.pi / 4)
-    lat_min_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_max + 2) / 2.0**zoom))) - math.pi / 4)
-    map_metadata = [lon_min_tile, lat_min_tile, lon_max_tile, lat_max_tile, width, height, m_px]
+        # Calculate map_metadata
+        radius = 6371000.0
+        m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
+        
+        lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180
+        lon_max_tile = (x_max + 2) * 360 / 2.0**zoom - 180
+        lat_max_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_min - 1) / 2.0**zoom))) - math.pi / 4)
+        lat_min_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_max + 2) / 2.0**zoom))) - math.pi / 4)
+        map_metadata.append([lon_min_tile, lat_min_tile, lon_max_tile, lat_max_tile, width, height, m_px])
+    
+    print("Saved maps")
+
+    import csv # For testing with animate_path2
+    with open('minimap_metadata.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(map_metadata)
+
+    map_img = map_images[0] # Remove later
+    map_metadata = map_metadata[0]
 
     return(map_img, map_metadata)
 
