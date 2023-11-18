@@ -112,7 +112,7 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
             print("Terminating program.")
             sys.exit()
     else:
-        print("All tiles are stored in cache. Stitching image...")
+        print("All tiles are stored in cache. Stitching images...")
     
     # Downloading maps
     map_metadata = []
@@ -152,10 +152,10 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
         writer = csv.writer(f)
         writer.writerows(map_metadata)
 
-    map_img = map_images[0] # Remove later
-    map_metadata = map_metadata[0]
+    #map_img = map_images[0] # Remove later
+    #map_metadata = map_metadata[0]
 
-    return(map_img, map_metadata)
+    return(map_images, map_metadata)
 
 
 

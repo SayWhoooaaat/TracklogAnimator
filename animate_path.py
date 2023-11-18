@@ -19,9 +19,9 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(track_points, map_image, map_metadata, outline_image, fps, overlay_width, total_height):
+def animate_path(track_points, map_images, map_metadata, outline_image, fps, overlay_width, total_height):
     transparent = True
-    m_px = map_metadata[6]
+    m_px = map_metadata[0][6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
@@ -35,7 +35,7 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     font = ImageFont.truetype("arial.ttf", size=14)
 
     # Initializes mini-map image
-    path_image = map_image.copy()
+    path_image = map_images[0].copy()
     draw = ImageDraw.Draw(path_image)
 
     temp_folder = 'temp_frames'
@@ -53,9 +53,9 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     except:
         timing_data = []
         corr_factor = 1
-    est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0) * corr_factor
+    est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0)
     
-    user_input = input(f"Estimating {round(est_time/60)} minutes to animate. Proceed? (y/n): ")
+    user_input = input(f"Estimating {round(est_time * corr_factor/60)} minutes to animate. Proceed? (y/n): ")
     if user_input.lower() != 'y':
         print("Terminating program.")
         sys.exit()
@@ -65,8 +65,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
     for i in range(0, len(track_points)):
         phi = track_points[i][5]
         # STEP 1: MAKE MINI-MAP FRAME
-        x = track_points[i][10]
-        y = track_points[i][11]
+        x = track_points[i][12]
+        y = track_points[i][13]
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=1)
@@ -97,8 +97,8 @@ def animate_path(track_points, map_image, map_metadata, outline_image, fps, over
         draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = track_points[i][12]
-        y_outline = track_points[i][13]
+        x_outline = track_points[i][10]
+        y_outline = track_points[i][11]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:

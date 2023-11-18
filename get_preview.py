@@ -16,10 +16,10 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def get_preview(track_points, map_image, map_metadata, outline_image_static, overlay_width):
+def get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width):
     print("Making preview image...")
 
-    m_px = map_metadata[6]
+    m_px = map_metadata[0][6]
     arrow = [(-8,-6), (8,0), (-8,6)]
 
     height, width = overlay_width, overlay_width
@@ -30,13 +30,13 @@ def get_preview(track_points, map_image, map_metadata, outline_image_static, ove
     ruler_text = f"{ruler_km} km"
     font = ImageFont.truetype("arial.ttf", size=14)
 
-    path_image = map_image.copy()
+    path_image = map_images[0].copy()
     draw = ImageDraw.Draw(path_image)
 
     endpoint = round(len(track_points)*1/4)
     for i in range(0, endpoint):
-        x = track_points[i][10]
-        y = track_points[i][11]
+        x = track_points[i][12]
+        y = track_points[i][13]
         phi = track_points[i][5]
         
         # Draws path on image with only path
@@ -67,8 +67,8 @@ def get_preview(track_points, map_image, map_metadata, outline_image_static, ove
     # STEP 2: MAKE OUTLINE-MAP FRAME
     outline_image = outline_image_static.copy()
     for i in range(0, endpoint):
-        x_outline = track_points[i][12]
-        y_outline = track_points[i][13]
+        x_outline = track_points[i][10]
+        y_outline = track_points[i][11]
 
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)

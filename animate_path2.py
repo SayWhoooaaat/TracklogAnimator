@@ -20,35 +20,45 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path2(track_points, map_image, map_metadata, outline_image, fps, overlay_width, total_height):
-    transparent = False
+def animate_path2(track_points, map_images, map_metadata, outline_image, fps, overlay_width, total_height):
+    transparent = True
     path_linewidth = 1
     arrow = [(-8,-6), (8,0), (-8,6)]
-
-    m_px = map_metadata[6]
-    height, width = overlay_width, overlay_width
-    center_factor = 0.3
-    center_radius = center_factor / 2 * min(height,width)
-
-    # Initializes mini-map image
-    path_image = map_image.copy()
-    draw = ImageDraw.Draw(path_image)
 
     temp_folder = 'temp_frames'
     os.makedirs(temp_folder, exist_ok=True)
 
+    m_px = map_metadata[0][6]
+    height, width = overlay_width, overlay_width
+    center_factor = 0.3
+    center_radius = center_factor / 2 * min(height,width)
+
+    # Initializes mini-map images
+    path_image = map_images[0].copy() # Only zoomiest image
+    draw = ImageDraw.Draw(path_image)
+    map_number = 0 # start with zoomiest - map0
+    # Find x0, y0 for all maps (should be stored in map metadata):
+    x_offsets = []
+    y_offsets = []
+    for i in range(0,len(map_images)-1):
+        scale = 2 ** i
+        x_offsets.append(track_points[0][12 + i * 2] * 2 ** i - track_points[0][12])
+        y_offsets.append(track_points[0][13 + i * 2] * 2 ** i - track_points[0][13])
+    
+
     # Initialize mode parameters
     camera = 1
     multicamera_start = 0
-    t1 = 5
+    t1 = 60
     t2 = 1
-    t3 = 3
+    t3 = 6
     t4 = 1
-    t5 = 5
-    x_pixels_min = track_points[0][10]
-    x_pixels_max = track_points[0][10]
-    y_pixels_min = track_points[0][11]
-    y_pixels_max = track_points[0][11]
+    t5 = 10
+    x_pixels_min = track_points[0][12]
+    x_pixels_max = track_points[0][12]
+    y_pixels_min = track_points[0][13]
+    y_pixels_max = track_points[0][13]
+    i_prev = 1
 
     # Estimate time
     est_time = len(track_points) / 10.0 * (1 + path_image.size[0] * path_image.size[1] / 21000000.0)
@@ -62,8 +72,8 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
     for i in range(0, len(track_points)):
         phi = track_points[i][5]
         # STEP 1: MAKE MINI-MAP FRAME
-        x = track_points[i][10]
-        y = track_points[i][11]
+        x = track_points[i][12]
+        y = track_points[i][13]
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=path_linewidth)
@@ -75,8 +85,7 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
         angled_arrow = [(x + px * math.cos(phi) - py * math.sin(phi), y + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
         draw2.polygon(angled_arrow, fill='red', outline ='black')
 
-        # Calculate big frame bounds (for highest zoom map)
-        padding = 30
+        # Find pixels traveled
         if x > x_pixels_max:
             x_pixels_max = x
         elif x < x_pixels_min:
@@ -85,21 +94,18 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
             y_pixels_max = y
         elif y < y_pixels_min:
             y_pixels_min = y
-        
-        pixel_width_big = 2*padding + max(x_pixels_max-x_pixels_min, y_pixels_max-y_pixels_min)    
-        pixel_height_big = pixel_width_big
-        frame_center_x_big = (x_pixels_max + x_pixels_min) / 2
-        frame_center_y_big = (y_pixels_max + y_pixels_min) / 2
+        pixels_traveled = max(x_pixels_max-x_pixels_min, y_pixels_max-y_pixels_min)
 
         # Determine camera 
         video_time_remaining = (len(track_points) - i) / fps
         video_time = (i - multicamera_start) / fps
         tm = video_time % (t1+t2+t3+t4)
-        if pixel_width_big < 0.3 * width: # change to 2
+        if pixels_traveled < 0.6 * width: # change to 2
             camera = 1
             multicamera_start = i # Delays multicamera start
         elif video_time_remaining <= t5:
             camera = 3
+            multicamera_start = i # Prevents funky tm behavior
         elif video_time_remaining <= t5 + t2:
             camera = 2
         elif video_time_remaining <= t5 + t2 + t1: # Need tm to increase through t1 to fit with t2
@@ -116,6 +122,38 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
         else:
             camera = 4
         
+        # Calc big image bounds once every tm cycle
+        if tm == t1: # As camera 2 starts:
+            i_critical = i + (t2 + t3) * fps
+            if video_time_remaining <= t5 + t2 + t1 + t4 + t3 + t2:
+                i_critical = len(track_points) - 1
+            
+            x_pixels_max = max(points[12] for points in track_points[0:i_critical])
+            x_pixels_min = min(points[12] for points in track_points[0:i_critical])
+            y_pixels_max = max(points[13] for points in track_points[0:i_critical])
+            y_pixels_min = min(points[13] for points in track_points[0:i_critical])
+
+            # Find frame centers and width for scaling targets
+            frame_center_x_big = (x_pixels_max + x_pixels_min) / 2
+            frame_center_y_big = (y_pixels_max + y_pixels_min) / 2
+            
+            padding = 20
+            pixel_width_big = 2*padding + max(x_pixels_max-x_pixels_min, y_pixels_max-y_pixels_min)
+            scale_big = pixel_width_big / width
+            map_number_big = min(max(math.ceil(math.log2(scale_big)), 0), len(map_images)-1)
+            scale_big = 2 ** map_number_big
+            pixel_width_big = width * scale_big
+
+            # Convert to coordinates for big image            
+            fcx = (frame_center_x_big + x_offsets[map_number_big]) / (2 ** map_number_big)
+            fcy = (frame_center_y_big + y_offsets[map_number_big]) / (2 ** map_number_big)
+            x_min_big = fcx - width/2
+            y_min_big = fcy - width/2
+
+            big_image = map_images[map_number_big].copy()
+            big_image = big_image.crop((x_min_big, y_min_big, x_min_big + width, y_min_big + width))
+            print(f'i_crit = {i_critical}, map_num_b = {map_number_big}, xm = {x_min_big}, ym = {y_min_big}')
+
         # Crop image based on camera angle
         if camera == 1:
             if tm == 0: # center for first iteration
@@ -127,56 +165,63 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
                 xc = xc + (center_distance - center_radius) * math.cos(beta)
                 yc = yc + (center_distance - center_radius) * math.sin(beta)
             cropped_image = image_with_arrow.crop((xc - width/2.0, yc - height/2.0, xc + width/2.0, yc + height/2.0))
+            draw3 = ImageDraw.Draw(cropped_image)
             scale = 1
             
-        elif camera == 2:
-            # Zoom out
-            fraction = (tm - t1) / t2
-            fraction = 0.5 - 0.5 * math.cos(fraction * math.pi)
-            pixel_width = width + (pixel_width_big - width) * fraction
-            frame_center_x = xc + (frame_center_x_big - xc) * fraction
-            frame_center_y = yc + (frame_center_y_big - yc) * fraction
-            x_min = frame_center_x - pixel_width/2
-            x_max = frame_center_x + pixel_width/2
-            y_min = frame_center_y - pixel_width/2
-            y_max = frame_center_y + pixel_width/2
-            cropped_image = image_with_arrow.crop((x_min, y_min, x_max, y_max))
-            cropped_image = cropped_image.resize((width, width))
-            scale = pixel_width / width
+        elif camera == 3: # overview-camera
+            map_number = map_number_big
+            scale = scale_big
+            if i == 0:
+                i = 2
+            if i != i_prev + 1: # Checking if this is first iteration in cam3
+                i_prev = 1
+            # Draw path on static big image
+            draw7 = ImageDraw.Draw(big_image)
+            for j in range (i_prev, i):
+                x_reframed = (track_points[j][12 + map_number * 2] - x_min_big)
+                x_r_prev = (track_points[j-1][12 + map_number * 2] - x_min_big)
+                y_reframed = (track_points[j][13 + map_number * 2] - y_min_big)
+                y_r_prev = (track_points[j-1][13 + map_number * 2] - y_min_big)
+                draw7.line((x_r_prev, y_r_prev, x_reframed, y_reframed), fill='red', width=path_linewidth)
+            
+            cropped_image = big_image.copy()
+            draw3 = ImageDraw.Draw(cropped_image)
+            angled_arrow = [(x_reframed + px * math.cos(phi) - py * math.sin(phi), y_reframed + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
+            draw3.polygon(angled_arrow, fill='red', outline ='black')
 
-        elif camera == 3:
-            # Stay zoomed out
-            x_min = frame_center_x_big - pixel_width_big/2
-            x_max = frame_center_x_big + pixel_width_big/2
-            y_min = frame_center_y_big - pixel_width_big/2
-            y_max = frame_center_y_big + pixel_width_big/2
-            cropped_image = image_with_arrow.crop((x_min, y_min, x_max, y_max))
-            cropped_image = cropped_image.resize((width, width))
-            scale = pixel_width_big / width
-
-        else: # camera 4
-            # Zoom in
-            fraction = 1 - (tm - t1 - t2 - t3) / t4
+            i_prev= i
+        
+        else: # zooming
+            if camera == 2:
+                fraction = (tm - t1) / t2
+            else: # camera == 4
+                fraction = 1 - (tm - t1 - t2 - t3) / t4
             fraction = 0.5 - 0.5 * math.cos(fraction * math.pi)
             pixel_width = width + (pixel_width_big - width) * fraction
             frame_center_x = x + (frame_center_x_big - x) * fraction
             frame_center_y = y + (frame_center_y_big - y) * fraction
-            x_min = frame_center_x - pixel_width/2
-            x_max = frame_center_x + pixel_width/2
-            y_min = frame_center_y - pixel_width/2
-            y_max = frame_center_y + pixel_width/2
-            cropped_image = image_with_arrow.crop((x_min, y_min, x_max, y_max))
-            cropped_image = cropped_image.resize((width, width))
             scale = pixel_width / width
+            # Choose map and change coordinate system accordingly
+            map_number = min(max(int(math.log2(scale)), 0), len(map_images)-1)
+            fcx = (frame_center_x + x_offsets[map_number]) / (2 ** map_number)
+            fcy = (frame_center_y + y_offsets[map_number]) / (2 ** map_number)
+            pixel_width = pixel_width / (2 ** map_number)
 
-        # Redraw line if zoomed out
-        draw3 = ImageDraw.Draw(cropped_image)
-        if camera > 1:
+            x_min = fcx - pixel_width/2
+            x_max = fcx + pixel_width/2
+            y_min = fcy - pixel_width/2
+            y_max = fcy + pixel_width/2
+
+            transition_image = map_images[map_number].copy()
+            cropped_image = transition_image.crop((x_min, y_min, x_max, y_max))
+            cropped_image = cropped_image.resize((width, width))
+            # Redraw line
+            draw3 = ImageDraw.Draw(cropped_image)
             for j in range (1, i): # O^2 computing...
-                x_reframed = (track_points[j][10] - x_min) / scale
-                x_r_prev = (track_points[j-1][10] - x_min) / scale
-                y_reframed = (track_points[j][11] - y_min) / scale
-                y_r_prev = (track_points[j-1][11] - y_min) / scale
+                x_reframed = (track_points[j][12 + map_number * 2] - x_min) * (2 ** map_number) / scale
+                x_r_prev = (track_points[j-1][12 + map_number * 2] - x_min) * (2 ** map_number) / scale
+                y_reframed = (track_points[j][13 + map_number * 2] - y_min) * (2 ** map_number) / scale
+                y_r_prev = (track_points[j-1][13 + map_number * 2] - y_min) * (2 ** map_number) / scale
                 draw3.line((x_r_prev, y_r_prev, x_reframed, y_reframed), fill='red', width=path_linewidth)
             angled_arrow = [(x_reframed + px * math.cos(phi) - py * math.sin(phi), y_reframed + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
             draw3.polygon(angled_arrow, fill='red', outline ='black')
@@ -198,8 +243,8 @@ def animate_path2(track_points, map_image, map_metadata, outline_image, fps, ove
 
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = track_points[i][12]
-        y_outline = track_points[i][13]
+        x_outline = track_points[i][10]
+        y_outline = track_points[i][11]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
@@ -295,23 +340,23 @@ with open('array_output.csv', 'r', newline='') as f:
     reader = csv.reader(f)
     track_points = [parse_row(row) for row in reader]
 
+with open('minimap_metadata.csv', 'r', newline='') as file:
+    reader = csv.reader(file)
+    minimap_metadata = [[float(item) for item in row] for row in reader]
+
 fps = 30
 anim_height = 1080
 overlay_width = 300
 
-radius = 6371000.0 #m
-zoom = 11
-cell_size = 512
-lat = track_points[0][6]
-m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos(lat/180*math.pi) # Mercator imprecise
-minimap_metadata = [0, 0, 0, 0, 0, 0, m_px]
-
 Image.MAX_IMAGE_PIXELS = None
-minimap_img = Image.open('media/map_stitched.png')
 outline_img = Image.open('media/country_outline.png')
+minimap_images = []
+for i in range(0, len(minimap_metadata)):
+    minimap_images.append(Image.open(f'media/map_stitched{i}.png'))
 
-playtime = 25
-offset = 30
+playtime = 32
+offset = 20
 start_point = offset * fps
 end_point = (offset + playtime) * fps
-animate_path2(track_points[start_point:end_point], minimap_img, minimap_metadata, outline_img, fps, overlay_width, anim_height)
+#track_points = track_points[start_point:end_point]
+animate_path2(track_points, minimap_images, minimap_metadata, outline_img, fps, overlay_width, anim_height)
