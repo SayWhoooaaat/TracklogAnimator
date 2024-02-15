@@ -71,14 +71,14 @@ def parse_file(file_path, dt, speedup):
         track_points[i].append(vx)
         track_points[i].append(vy)
 
-    # calculate distance
+    # calculate distance (should do in constant int matrix)
     dist = 0
     dist_threshold = 300
     prev_lat = track_points[0][1]
     prev_lon = track_points[0][2]
     print("Calculating distances...")
     for i in range(0, len(track_points)):
-        # find distance between current point and prev_lat, prev_lon -----------------------------
+        # find distance between current point and prev_lat, prev_lon
         d_y = (prev_lat - track_points[i][1]) / 180 * math.pi * radius
         d_x = (track_points[i][2] - prev_lon) / 180 * math.pi * math.cos(prev_lat/180*math.pi) * radius
         new_dist = math.sqrt(d_y*d_y + d_x*d_x)
@@ -91,7 +91,7 @@ def parse_file(file_path, dt, speedup):
     print(f"Distance: {round(dist/1000)} km. Finishing 2D-array...")
 
     # Making contant interval matrix
-    track_points2 = []
+    track_points3 = []
     current_time = track_points[0][0]
     i = 0 # index of old array
     while current_time < track_points[-1][0]:  # Loop until the last of the original track_points
@@ -115,15 +115,24 @@ def parse_file(file_path, dt, speedup):
 
         v = math.sqrt(vx*vx+vy*vy)
         if (vx == 0) & (vy == 0):
-            if len(track_points2) > 0:
-                phi = track_points2[-1][5] # old angle
+            if len(track_points3) > 0:
+                phi = track_points3[-1]["direction"] # old angle
             else:
                 phi = 0
         else:
             phi = math.atan2(vy,vx)
 
         # append values to new array
-        track_points2.append([current_time, x_ish, y_ish, ele, v, phi, lat, lon, dist])
+        track_point = {
+            "timestamp": current_time,
+            "lat": lat,
+            "lon": lon,
+            "elevation": ele,
+            "velocity": v,
+            "direction": phi,
+            "distance": dist
+        }
+        track_points3.append(track_point)
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
@@ -131,11 +140,14 @@ def parse_file(file_path, dt, speedup):
     # Smooth v & elev
     update_interval_realtime = 0.5
     interval = timedelta(seconds=speedup*update_interval_realtime)
-    start_time = track_points2[0][0]
+    start_time = track_points3[0]["timestamp"]
     sum_velocity = 0
     sum_ele = 0
     count = 0
-    for i, (timepoint, xish, yish, ele, velocity, *_) in enumerate(track_points2):
+    for i, point in enumerate(track_points3):
+        timepoint = point["timestamp"]
+        ele = point["elevation"]
+        velocity = point["velocity"]
         if timepoint < start_time + interval:
             # Accumulate velocity
             sum_velocity += velocity
@@ -144,8 +156,8 @@ def parse_file(file_path, dt, speedup):
         else:
             # Insert average velocity
             for j in range(i - count, i):
-                track_points2[j][4] = sum_velocity / count
-                track_points2[j][3] = sum_ele / count
+                track_points3[j]["velocity"] = sum_velocity / count
+                track_points3[j]["elevation"] = sum_ele / count
 
             # Reset interval data for the new interval
             sum_velocity = velocity
@@ -155,18 +167,19 @@ def parse_file(file_path, dt, speedup):
     
     # Update the last interval if not already done
     if count > 0:
-        for j in range(len(track_points2) - count, len(track_points2)):
-            track_points2[j][4] = sum_velocity / count
-            track_points2[j][3] = sum_ele / count
+        for j in range(len(track_points3) - count, len(track_points3)):
+            track_points3[j]["velocity"] = sum_velocity / count
+            track_points3[j]["elevation"] = sum_ele / count
     
     # Add local time
     tf = TimezoneFinder()
-    timezone_str = tf.timezone_at(lat=track_points2[0][6], lng=track_points2[0][7])
-    for point in track_points2:
-        utc_time = point[0]
+    timezone_str = tf.timezone_at(lat=track_points3[0]["lat"], lng=track_points3[0]["lon"])
+    for point in track_points3:
+        utc_time = point["timestamp"]
         local_time = utc_time.replace(tzinfo=ZoneInfo('UTC')).astimezone(ZoneInfo(timezone_str))
-        point.append(local_time)
+        #point.append(local_time)
+        point["local_time"] = local_time
     
     print("Made 2D-array from trackfile")
-    return track_points2, track_metadata
+    return track_points3, track_metadata
 

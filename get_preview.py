@@ -35,9 +35,9 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
 
     endpoint = round(len(track_points)*1/4)
     for i in range(0, endpoint):
-        x = track_points[i][12]
-        y = track_points[i][13]
-        phi = track_points[i][5]
+        x = track_points[i]["map_coordinate"][0]["x"]
+        y = track_points[i]["map_coordinate"][0]["y"]
+        phi = track_points[i]["direction"]
         
         # Draws path on image with only path
         if i > 0:
@@ -67,8 +67,8 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     # STEP 2: MAKE OUTLINE-MAP FRAME
     outline_image = outline_image_static.copy()
     for i in range(0, endpoint):
-        x_outline = track_points[i][10]
-        y_outline = track_points[i][11]
+        x_outline = track_points[i]["outline_x"]
+        y_outline = track_points[i]["outline_y"]
 
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
@@ -93,7 +93,11 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     base_image.paste(outline_with_dot, position_outline, outline_with_dot)
 
     # Drawing text
-    timedate, x, y, ele, v, phi, lat, lon, dist, localtime, *_ = track_points[endpoint]
+    localtime = track_points[i]["local_time"]
+    ele = track_points[i]["elevation"]
+    v = track_points[i]["velocity"]
+    dist = track_points[i]["distance"]
+
     current_time = localtime.strftime("%H:%M")
     current_date = localtime.strftime("%Y-%m-%d")
 

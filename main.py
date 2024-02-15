@@ -22,10 +22,8 @@ outline_image, outline_metadata = get_outline(track_points, overlay_width, anim_
 from append_pixel_positions import append_pixel_positions
 track_points = append_pixel_positions(track_points, map_metadata, outline_metadata)
 
-import csv
-with open('array_output.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerows(track_points)
+from export_to_csv import export_to_csv
+export_to_csv(track_points, 'track_points.csv')
 
 from draw_path import draw_path # Unnecessary, but good for testing 
 draw_path(minimap_images, track_points) 

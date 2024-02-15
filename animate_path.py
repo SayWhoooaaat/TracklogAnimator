@@ -42,9 +42,8 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
     y_offsets = []
     for i in range(0,len(map_images)):
         scale = 2 ** i
-        x_offsets.append(track_points[0][12 + i * 2] * 2 ** i - track_points[0][12])
-        y_offsets.append(track_points[0][13 + i * 2] * 2 ** i - track_points[0][13])
-    
+        x_offsets.append(track_points[0]["map_coordinate"][i]["x"] * scale - track_points[0]["map_coordinate"][0]["x"])
+        y_offsets.append(track_points[0]["map_coordinate"][i]["y"] * scale - track_points[0]["map_coordinate"][0]["y"])
 
     # Initialize mode parameters
     camera = 1
@@ -54,10 +53,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
     t3 = 8
     t4 = 1
     t5 = 10
-    x_pixels_min = track_points[0][12]
-    x_pixels_max = track_points[0][12]
-    y_pixels_min = track_points[0][13]
-    y_pixels_max = track_points[0][13]
+    x_pixels_min = track_points[0]["map_coordinate"][0]["x"]
+    x_pixels_max = track_points[0]["map_coordinate"][0]["x"]
+    y_pixels_min = track_points[0]["map_coordinate"][0]["y"]
+    y_pixels_max = track_points[0]["map_coordinate"][0]["y"]
     i_prev = 1
 
     # Estimate time
@@ -70,10 +69,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
 
     # Saving frames to pngs
     for i in range(0, len(track_points)):
-        phi = track_points[i][5]
+        phi = track_points[i]["direction"]
         # STEP 1: MAKE MINI-MAP FRAME
-        x = track_points[i][12]
-        y = track_points[i][13]
+        x = track_points[i]["map_coordinate"][0]["x"]
+        y = track_points[i]["map_coordinate"][0]["y"]
         # Draws path on image with only path
         if i > 0:
             draw.line((last_x, last_y, x, y), fill='red', width=path_linewidth)
@@ -128,10 +127,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             if video_time_remaining <= t5 + t2 + t1 + t4 + t3 + t2:
                 i_critical = len(track_points) - 1
             
-            x_pixels_max = max(points[12] for points in track_points[0:i_critical])
-            x_pixels_min = min(points[12] for points in track_points[0:i_critical])
-            y_pixels_max = max(points[13] for points in track_points[0:i_critical])
-            y_pixels_min = min(points[13] for points in track_points[0:i_critical])
+            x_pixels_max = max(points["map_coordinate"][0]["x"] for points in track_points[0:i_critical])
+            x_pixels_min = min(points["map_coordinate"][0]["x"] for points in track_points[0:i_critical])
+            y_pixels_max = max(points["map_coordinate"][0]["y"] for points in track_points[0:i_critical])
+            y_pixels_min = min(points["map_coordinate"][0]["y"] for points in track_points[0:i_critical])
 
             # Find frame centers and width for scaling targets
             frame_center_x_big = (x_pixels_max + x_pixels_min) / 2
@@ -179,10 +178,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             # Draw path on static big image
             draw7 = ImageDraw.Draw(big_image)
             for j in range (i_prev, i+1):
-                x_reframed = (track_points[j][12 + map_number * 2] - x_min_big)
-                x_r_prev = (track_points[j-1][12 + map_number * 2] - x_min_big)
-                y_reframed = (track_points[j][13 + map_number * 2] - y_min_big)
-                y_r_prev = (track_points[j-1][13 + map_number * 2] - y_min_big)
+                x_reframed = (track_points[j]["map_coordinate"][map_number]["x"] - x_min_big)
+                x_r_prev = (track_points[j-1]["map_coordinate"][map_number]["x"] - x_min_big)
+                y_reframed = (track_points[j]["map_coordinate"][map_number]["y"] - y_min_big)
+                y_r_prev = (track_points[j-1]["map_coordinate"][map_number]["y"] - y_min_big)
                 draw7.line((x_r_prev, y_r_prev, x_reframed, y_reframed), fill='red', width=path_linewidth)
             
             cropped_image = big_image.copy()
@@ -219,10 +218,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             # Redraw line
             draw3 = ImageDraw.Draw(cropped_image)
             for j in range (1, i+1): # O^2 computing...
-                x_reframed = (track_points[j][12 + map_number * 2] - x_min) * (2 ** map_number) / scale
-                x_r_prev = (track_points[j-1][12 + map_number * 2] - x_min) * (2 ** map_number) / scale
-                y_reframed = (track_points[j][13 + map_number * 2] - y_min) * (2 ** map_number) / scale
-                y_r_prev = (track_points[j-1][13 + map_number * 2] - y_min) * (2 ** map_number) / scale
+                x_reframed = (track_points[j]["map_coordinate"][map_number]["x"] - x_min) * (2 ** map_number) / scale
+                x_r_prev = (track_points[j-1]["map_coordinate"][map_number]["x"] - x_min) * (2 ** map_number) / scale
+                y_reframed = (track_points[j]["map_coordinate"][map_number]["y"] - y_min) * (2 ** map_number) / scale
+                y_r_prev = (track_points[j-1]["map_coordinate"][map_number]["y"] - y_min) * (2 ** map_number) / scale
                 draw3.line((x_r_prev, y_r_prev, x_reframed, y_reframed), fill='red', width=path_linewidth)
             angled_arrow = [(x_reframed + px * math.cos(phi) - py * math.sin(phi), y_reframed + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
             draw3.polygon(angled_arrow, fill='red', outline ='black')
@@ -244,8 +243,8 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
 
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
-        x_outline = track_points[i][10]
-        y_outline = track_points[i][11]
+        x_outline = track_points[i]["outline_x"]
+        y_outline = track_points[i]["outline_y"]
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
@@ -267,7 +266,11 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
         # Drawing text
-        timedate, x, y, ele, v, phi, lat, lon, dist, localtime, *_ = track_points[i]
+        localtime = track_points[i]["local_time"]
+        ele = track_points[i]["elevation"]
+        v = track_points[i]["velocity"]
+        dist = track_points[i]["distance"]
+
         current_time = localtime.strftime("%H:%M")
         current_date = localtime.strftime("%Y-%m-%d")
 

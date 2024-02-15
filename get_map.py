@@ -63,6 +63,8 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     lon_min = track_metadata['min_longitude']
     lon_max = track_metadata['max_longitude']
 
+    radius = 6371000.0
+
     # Calculate max zoom
     tile_img = get_tile_image_mapbox(2,1,2)
     cell_size = tile_img.size[0]
@@ -82,17 +84,21 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
     map_images = []
     for zoom in range(zoom_max, zoom_min - 1, -1):
         # List first 9 tiles
-        x_tile, y_tile = lat_lon_to_tile_coords(track_points[0][6], track_points[0][7], zoom)
+        x_tile, y_tile = lat_lon_to_tile_coords(track_points[0]["lat"], track_points[0]["lon"], zoom)
         for x in range(x_tile - 1, x_tile + 2):
             for y in range(y_tile - 1, y_tile + 2):
                 tile_list.append([x, y, zoom])
         # List other tiles
-        last_point = track_points[0][1], track_points[0][2]
+        prev_lat = track_points[0]["lat"]
+        prev_lon = track_points[0]["lon"]
         for point in track_points:
-            segment_dist = math.sqrt((point[1]- last_point[0])**2 + (point[2]-last_point[1])**2)
+            d_y = (prev_lat - point["lat"]) / 180 * math.pi * radius
+            d_x = (point["lon"] - prev_lon) / 180 * math.pi * math.cos(prev_lat/180*math.pi) * radius
+            segment_dist = math.sqrt(d_x**2 + d_y**2)            
             if segment_dist > anim_km * 1000 / 2: # Look for tiles if traveled half map length
-                last_point = point[1], point[2]
-                x_tile, y_tile = lat_lon_to_tile_coords(point[6], point[7], zoom)
+                prev_lat = point["lat"]
+                prev_lon = point["lon"]
+                x_tile, y_tile = lat_lon_to_tile_coords(point["lat"], point["lon"], zoom)
                 for x in range(x_tile - 1, x_tile + 2):
                     for y in range(y_tile - 1, y_tile + 2):
                         # Add to tile_list if not already included
@@ -136,7 +142,6 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
         map_images[i].save(f'media/map_stitched{i}.png')
     
         # Calculate map_metadata
-        radius = 6371000.0
         m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
         
         lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180

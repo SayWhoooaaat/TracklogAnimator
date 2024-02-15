@@ -145,12 +145,12 @@ def get_outline(track_points, width, anim_height):
     height_max = anim_height - width - 150
     # Simplify tracklog
     timeinterval = 120
-    current_time = track_points[0][0]
+    current_time = track_points[0]["timestamp"]
     coords = []
     for point in track_points:
-        if (point[0] - current_time).total_seconds() > timeinterval:
-            current_time = point[0]
-            coords.append((point[6], point[7]))
+        if (point["timestamp"] - current_time).total_seconds() > timeinterval:
+            current_time = point["timestamp"]
+            coords.append((point["lat"], point["lon"]))
 
     print("Finding country...")
     bounds, countries = get_bounding_coordinates(coords)
