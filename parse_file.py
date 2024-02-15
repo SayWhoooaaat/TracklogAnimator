@@ -43,17 +43,10 @@ def parse_file(file_path, dt, speedup):
         track_metadata['max_longitude'] = max(track_metadata['max_longitude'], lon)
         track_metadata['min_longitude'] = min(track_metadata['min_longitude'], lon)
     
-    lat0 = track_metadata['max_latitude']
-    lon0 = track_metadata['min_longitude']
-    
     # Expand the array with more parameters
     radius = 6371000.0
     for i in range(0, len(track_points)):
         timestamp, latitude, longitude, *_ = track_points[i]
-        y_ish = (lat0 - latitude) / 180 * math.pi * radius
-        x_ish = (longitude - lon0) / 180 * math.pi * math.cos(lat0/180*math.pi) * radius
-        track_points[i].append(x_ish)
-        track_points[i].append(y_ish)
         if i==0:
             vx = 0
             vy = 0
@@ -62,8 +55,8 @@ def parse_file(file_path, dt, speedup):
             lon_prev = track_points[i-1][2]
             lat_prev = track_points[i-1][1]
             if time_delta == 0: # old velocities
-                vx = track_points[i-1][6]
-                vy = track_points[i-1][7]
+                vx = track_points[i-1][4]
+                vy = track_points[i-1][5]
             else:
                 vx = (longitude-lon_prev) * math.pi * radius / 180 / time_delta * math.cos(lat*math.pi/180)
                 vy = (lat_prev-latitude) * math.pi * radius / 180 / time_delta
@@ -99,13 +92,11 @@ def parse_file(file_path, dt, speedup):
         # Find the appropriate i such that track_points[i][0] <= current_time < track_points[i+1][0]
         while i < len(track_points) - 1 and current_time >= track_points[i + 1][0]:
             i += 1
-        t1, lat1, lon1, ele1, x1, y1, vx1, vy1, dist1 = track_points[i]
-        t2, lat2, lon2, ele2, x2, y2, vx2, vy2, dist2 = track_points[i + 1]
+        t1, lat1, lon1, ele1, vx1, vy1, dist1 = track_points[i]
+        t2, lat2, lon2, ele2, vx2, vy2, dist2 = track_points[i + 1]
         fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         
         # Interpolate
-        x_ish = x1 + fraction * (x2 - x1)
-        y_ish = y1 + fraction * (y2 - y1)
         ele = ele1 + fraction * (ele2 - ele1)
         vx = vx1 + fraction * (vx2 - vx1)
         vy = vy1 + fraction * (vy2 - vy1)
