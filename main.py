@@ -1,5 +1,5 @@
 
-track_file = "tracklogs/gpx_loen.gpx"
+track_file = "tracklogs/tenerife.gpx"
 speedup = 25
 fps = 30
 anim_height = 1080

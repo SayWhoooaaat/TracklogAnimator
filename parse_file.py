@@ -112,6 +112,12 @@ def parse_file(file_path, dt, speedup):
                 phi = 0
         else:
             phi = math.atan2(vy,vx)
+        
+        if len(track_points3) == 0:
+            vario = 0
+        else:
+            vario = -(ele - ele_old) / dt
+        ele_old = ele
 
         # append values to new array
         track_point = {
@@ -121,7 +127,8 @@ def parse_file(file_path, dt, speedup):
             "elevation": ele,
             "velocity": v,
             "direction": phi,
-            "distance": dist
+            "distance": dist,
+            "vario": vario
         }
         track_points3.append(track_point)
 
@@ -134,25 +141,30 @@ def parse_file(file_path, dt, speedup):
     start_time = track_points3[0]["timestamp"]
     sum_velocity = 0
     sum_ele = 0
+    sum_vario = 0
     count = 0
     for i, point in enumerate(track_points3):
         timepoint = point["timestamp"]
         ele = point["elevation"]
         velocity = point["velocity"]
+        vario = point["vario"]
         if timepoint < start_time + interval:
             # Accumulate velocity
             sum_velocity += velocity
             sum_ele += ele
+            sum_vario += vario
             count += 1
         else:
             # Insert average velocity
             for j in range(i - count, i):
                 track_points3[j]["velocity"] = sum_velocity / count
                 track_points3[j]["elevation"] = sum_ele / count
+                track_points3[j]["vario"] = sum_vario / count
 
             # Reset interval data for the new interval
             sum_velocity = velocity
             sum_ele = ele
+            sum_vario = vario
             count = 1
             start_time = timepoint
     
@@ -161,6 +173,7 @@ def parse_file(file_path, dt, speedup):
         for j in range(len(track_points3) - count, len(track_points3)):
             track_points3[j]["velocity"] = sum_velocity / count
             track_points3[j]["elevation"] = sum_ele / count
+            track_points3[j]["vario"] = sum_vario / count
     
     # Add local time
     tf = TimezoneFinder()

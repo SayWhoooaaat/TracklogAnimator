@@ -24,6 +24,9 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
     transparent = False
     path_linewidth = 1
     arrow = [(-8,-6), (8,0), (-8,6)]
+    vertical_arrow = [(-1,-3), (1,-3), (1,0), (2,0), (0,3), (-2,0), (-1,0)]
+    horizontal_arrow = [(-3,-1), (-3,1), (0,1), (0,2), (3,0), (0,-2), (0,-1)]
+    horizontal_arrow = [(160 + px*3, 762 + py*3) for px, py in horizontal_arrow]
 
     temp_folder = 'temp_frames'
     os.makedirs(temp_folder, exist_ok=True)
@@ -260,7 +263,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         cropped_image = cropped_image.convert("RGBA")
 
         position_minimap = (0, animation_frame.size[1] - cropped_image.size[1])
-        position_outline = (0, animation_frame.size[1] - cropped_image.size[1] - outline_image.size[1] - 50)
+        position_outline = (0, animation_frame.size[1] - cropped_image.size[1] - outline_image.size[1] - 70)
 
         animation_frame.paste(cropped_image, position_minimap, cropped_image)
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
@@ -270,6 +273,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         ele = track_points[i]["elevation"]
         v = track_points[i]["velocity"]
         dist = track_points[i]["distance"]
+        vario = track_points[i]["vario"]
 
         current_time = localtime.strftime("%H:%M")
         current_date = localtime.strftime("%Y-%m-%d")
@@ -277,9 +281,16 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         draw6 = ImageDraw.Draw(animation_frame)
         draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
         draw6.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-        draw6.text((20,750), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        draw6.text((116,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        draw6.text((220,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6.text((30,720), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        # Draw vario-arrow
+        arrow_scale = -min(6, 3 - vario / 2) if vario < 0 else 3
+        scaled_arrow = [(160 + px * arrow_scale, 736 + py * arrow_scale) for px, py in vertical_arrow]
+        draw6.polygon(scaled_arrow, outline ='white', width=2)
+        draw6.text((180,720), f"{round(vario*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        # Draw static speed arrow
+        draw6.polygon(horizontal_arrow, outline ='white', width=2)
+        draw6.text((180,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6.text((30,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
 
         # Save frame as png:
         frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')
