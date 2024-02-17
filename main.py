@@ -1,5 +1,5 @@
 
-track_file = "tracklogs/tenerife.gpx"
+track_file = "tracklogs/gpx_grott.gpx"
 speedup = 25
 fps = 30
 anim_height = 1080
@@ -10,8 +10,8 @@ minimap_km = 4
 dt = speedup / fps
 
 
-from parse_file import parse_file
-track_points, track_metadata = parse_file(track_file, dt, speedup)
+from process_tracklog import process_tracklog
+track_points, track_metadata = process_tracklog(track_file, dt, speedup)
 
 from get_map import get_map
 minimap_images, map_metadata = get_map(track_metadata, overlay_width, minimap_km, track_points)

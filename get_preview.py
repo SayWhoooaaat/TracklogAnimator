@@ -101,6 +101,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     v = track_points[i]["velocity"]
     dist = track_points[i]["distance"]
     vario = track_points[i]["vario"]
+    vario_lr = track_points[i]["vario_low_refresh"]
 
     current_time = localtime.strftime("%H:%M")
     current_date = localtime.strftime("%Y-%m-%d")
@@ -113,7 +114,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     arrow_scale = -min(6, 3 - vario / 2) if vario < 0 else 3
     scaled_arrow = [(160 + px * arrow_scale, 736 + py * arrow_scale) for px, py in vertical_arrow]
     draw6.polygon(scaled_arrow, outline ='white', width=2)
-    draw6.text((180,720), f"{round(vario*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw6.text((180,720), f"{round(vario_lr*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
     # Draw static speed arrow
     draw6.polygon(horizontal_arrow, outline ='white', width=2)
     draw6.text((180,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
