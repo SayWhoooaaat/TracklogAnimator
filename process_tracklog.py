@@ -1,12 +1,12 @@
 import os
 import math
-from datetime import datetime
 from datetime import timedelta
-import random
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
-import time
-import sys
+
+from processing_utils import get_elevation_from_cache
+from processing_utils import parse_gpx, parse_igc, parse_tcx
+from processing_utils import smooth_data, smooth_angles
 
 
 def process_tracklog(file_path, dt, speedup):
@@ -14,11 +14,10 @@ def process_tracklog(file_path, dt, speedup):
     _, file_extension = os.path.splitext(file_path)
     file_type = file_extension[1:].lower()
 
-    from parsers import parse_gpx, parse_igc, parse_tcx
     if file_type == 'gpx':
         track_points = parse_gpx(open(file_path, 'r'))
     elif file_type == 'igc':
-        track_points = parse_igc(file_path) # We get gps-altitude!
+        track_points = parse_igc(file_path)
     elif file_type == 'tcx':
         track_points = parse_tcx(open(file_path, 'r')) # We get velocity directly!
     else:
@@ -138,20 +137,29 @@ def process_tracklog(file_path, dt, speedup):
     smoothing_time_vario = 20
     smoothing_time_phi = 10
     window_size = round(smoothing_time_vario / dt / 2) * 2 - 1
-    from parsers import smooth_data
+    
     vario_data = [point["vario"] for point in track_points3]
     smoothed_vario = smooth_data(vario_data, window_size)
     for i, point in enumerate(track_points3):
         if i < len(smoothed_vario):
             point["vario"] = smoothed_vario[i]
     
-    from parsers import smooth_angles
     window_size = round(smoothing_time_phi / dt / 2) * 2 - 1
     direction_data = [point["direction"] for point in track_points3]
     smoothed_direction = smooth_angles(direction_data, window_size)
     for i, point in enumerate(track_points3):
         if i < len(smoothed_direction):
             point["direction"] = smoothed_direction[i]
+
+    # Find ground elevation
+    heightmap_resolution = 500
+    resolution_lat = round(heightmap_resolution / radius / math.pi * 180,5)
+    resolution_lon = round(heightmap_resolution / radius / math.pi * 180 / math.cos(lat*math.pi/180),5)
+    for i, point in enumerate(track_points3):
+        lat = point["lat"]
+        lon = point["lon"]
+        ground_height = get_elevation_from_cache(lat, lon, resolution_lat, resolution_lon)
+        track_points3[i]["agl"] = max(point["elevation"] - ground_height, 0)
 
 
     # Limit refresh rate of v, elev and vario
