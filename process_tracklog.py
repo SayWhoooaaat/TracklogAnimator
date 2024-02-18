@@ -155,11 +155,14 @@ def process_tracklog(file_path, dt, speedup):
     heightmap_resolution = 500
     resolution_lat = round(heightmap_resolution / radius / math.pi * 180,5)
     resolution_lon = round(heightmap_resolution / radius / math.pi * 180 / math.cos(lat*math.pi/180),5)
-    for i, point in enumerate(track_points3):
+    coordinates = []
+    for point in track_points3:
         lat = point["lat"]
         lon = point["lon"]
-        ground_height = get_elevation_from_cache(lat, lon, resolution_lat, resolution_lon)
-        track_points3[i]["agl"] = max(point["elevation"] - ground_height, 0)
+        coordinates.append([lat, lon])
+    ground_heights = get_elevation_from_cache(coordinates, resolution_lat, resolution_lon)
+    for i, point in enumerate(track_points3):
+        track_points3[i]["agl"] = max(point["elevation"] - ground_heights[i], 0)
 
 
     # Limit refresh rate of v, elev and vario
@@ -168,17 +171,20 @@ def process_tracklog(file_path, dt, speedup):
     start_time = track_points3[0]["timestamp"]
     sum_velocity = 0
     sum_ele = 0
+    sum_agl = 0
     sum_vario = 0
     count = 0
     for i, point in enumerate(track_points3):
         timepoint = point["timestamp"]
         ele = point["elevation"]
+        agl = point["agl"]
         velocity = point["velocity"]
         vario = point["vario"]
         if timepoint < start_time + interval:
             # Accumulate velocity
             sum_velocity += velocity
             sum_ele += ele
+            sum_agl += agl
             sum_vario += vario
             count += 1
         else:
@@ -186,11 +192,13 @@ def process_tracklog(file_path, dt, speedup):
             for j in range(i - count, i):
                 track_points3[j]["velocity"] = sum_velocity / count
                 track_points3[j]["elevation"] = sum_ele / count
+                track_points3[j]["agl"] = sum_agl / count
                 track_points3[j]["vario_low_refresh"] = sum_vario / count
 
             # Reset interval data for the new interval
             sum_velocity = velocity
             sum_ele = ele
+            sum_agl = agl
             sum_vario = vario
             count = 1
             start_time = timepoint
@@ -200,6 +208,7 @@ def process_tracklog(file_path, dt, speedup):
         for j in range(len(track_points3) - count, len(track_points3)):
             track_points3[j]["velocity"] = sum_velocity / count
             track_points3[j]["elevation"] = sum_ele / count
+            track_points3[j]["agl"] = sum_agl / count
             track_points3[j]["vario_low_refresh"] = sum_vario / count
     
     # Add local time

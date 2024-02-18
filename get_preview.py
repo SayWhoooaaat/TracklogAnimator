@@ -98,6 +98,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     # Drawing text
     localtime = track_points[i]["local_time"]
     ele = track_points[i]["elevation"]
+    agl = track_points[i]["agl"]
     v = track_points[i]["velocity"]
     dist = track_points[i]["distance"]
     vario = track_points[i]["vario"]
@@ -109,7 +110,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     draw6 = ImageDraw.Draw(base_image)
     draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
     draw6.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-    draw6.text((30,720), f"{round(ele)} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+    draw6.text((30,720), f"{round(agl/10)*10} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
     # Draw vario-arrow
     arrow_scale = -min(6, 3 - vario / 2) if vario < 0 else 3
     scaled_arrow = [(160 + px * arrow_scale, 736 + py * arrow_scale) for px, py in vertical_arrow]
