@@ -81,13 +81,31 @@ def get_elevation_from_cache(coordinates, precision_lat=0.01, precision_lon=0.01
         ele_hh = next(item for item in elevation_data if item[:2] == [lat_high, lon_high])[2]
 
         # Bilinear interpolation
-        den = (lon_high - lon_low) * (lat_high - lat_low)
-        fxy1 = ((lon_high - lon) * (lat_high - lat) / den * ele_ll +
-                (lon - lon_low) * (lat_high - lat) / den * ele_lh)
-        fxy2 = ((lon_high - lon) * (lat - lat_low) / den * ele_hl +
-                (lon - lon_low) * (lat - lat_low) / den * ele_hh)
+        if lat_high == lat_low and lon_high != lon_low:
+            # Point falls on a horizontal grid line, interpolate only in longitude
+            interpolated_elevation = (
+                (lon_high - lon) / (lon_high - lon_low) * ele_ll +
+                (lon - lon_low) / (lon_high - lon_low) * ele_lh
+            )
+        elif lon_high == lon_low and lat_high != lat_low:
+            # Point falls on a vertical grid line, interpolate only in latitude
+            interpolated_elevation = (
+                (lat_high - lat) / (lat_high - lat_low) * ele_ll +
+                (lat - lat_low) / (lat_high - lat_low) * ele_hl
+            )
+        elif lat_high == lat_low and lon_high == lon_low:
+            # Point exactly matches a grid point (no interpolation needed)
+            interpolated_elevation = ele_ll  # All ele_ll, ele_lh, ele_hl, ele_hh should be the same
+        else:
+            # Normal bilinear interpolation
+            den = (lon_high - lon_low) * (lat_high - lat_low)
+            fxy1 = ((lon_high - lon) * (lat_high - lat) / den * ele_ll +
+                    (lon - lon_low) * (lat_high - lat) / den * ele_lh)
+            fxy2 = ((lon_high - lon) * (lat - lat_low) / den * ele_hl +
+                    (lon - lon_low) * (lat - lat_low) / den * ele_hh)
+            interpolated_elevation = fxy1 + fxy2
         
-        trackpoint_elevations.append(fxy1 + fxy2)
+        trackpoint_elevations.append(interpolated_elevation)
 
     return trackpoint_elevations
 

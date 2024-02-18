@@ -152,9 +152,10 @@ def process_tracklog(file_path, dt, speedup):
             point["direction"] = smoothed_direction[i]
 
     # Find ground elevation
+    print("Finding ground elevation...")
     heightmap_resolution = 500
-    resolution_lat = round(heightmap_resolution / radius / math.pi * 180,5)
-    resolution_lon = round(heightmap_resolution / radius / math.pi * 180 / math.cos(lat*math.pi/180),5)
+    resolution_lat = round(heightmap_resolution / radius / math.pi * 180, 5)
+    resolution_lon = round(heightmap_resolution / radius / math.pi * 180 / math.cos(lat*math.pi/180), 5)
     coordinates = []
     for point in track_points3:
         lat = point["lat"]

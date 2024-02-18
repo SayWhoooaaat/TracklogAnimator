@@ -1,10 +1,11 @@
 
-track_file = "tracklogs/gpx_grott.gpx"
-speedup = 25
+track_file = "tracklogs/benz.igc"
+speedup = 66
 fps = 30
 anim_height = 1080
 overlay_width = 300
 minimap_km = 4
+transparent = False
 # Speedup should be 25. minimap_km should be 4-6. 
 
 dt = speedup / fps
@@ -32,7 +33,7 @@ from get_preview import get_preview
 get_preview(track_points, minimap_images, map_metadata, outline_image, overlay_width)
 
 from animate_path import animate_path
-animate_path(track_points, minimap_images, map_metadata, outline_image, fps, overlay_width, anim_height)
+animate_path(track_points, minimap_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent)
 
 print("Done!")
 
