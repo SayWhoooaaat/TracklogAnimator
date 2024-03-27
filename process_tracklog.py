@@ -15,14 +15,14 @@ def process_tracklog(file_path, dt, speedup):
     file_type = file_extension[1:].lower()
 
     if file_type == 'gpx':
-        track_points = parse_gpx(open(file_path, 'r'))
+        track_points_temp = parse_gpx(open(file_path, 'r'))
     elif file_type == 'igc':
-        track_points = parse_igc(file_path)
+        track_points_temp = parse_igc(file_path)
     elif file_type == 'tcx':
-        track_points = parse_tcx(open(file_path, 'r')) # We get velocity directly!
+        track_points_temp = parse_tcx(open(file_path, 'r')) # We get velocity directly!
     else:
         print("Unsupported file type.")
-        track_points = None, None
+        track_points_temp = None, None
     print(f"Parsing {file_type} file to 2D-array...")
 
     # Store metadata
@@ -33,9 +33,9 @@ def process_tracklog(file_path, dt, speedup):
         'min_longitude': float('inf'),
         'dt': dt, #seconds
     }
-    for i in range(0, len(track_points)):
-        lat = track_points[i][1]
-        lon = track_points[i][2]
+    for i in range(0, len(track_points_temp)):
+        lat = track_points_temp[i][1]
+        lon = track_points_temp[i][2]
         track_metadata['max_latitude'] = max(track_metadata['max_latitude'], lat)
         track_metadata['min_latitude'] = min(track_metadata['min_latitude'], lat)
         track_metadata['max_longitude'] = max(track_metadata['max_longitude'], lon)
@@ -43,55 +43,55 @@ def process_tracklog(file_path, dt, speedup):
     
     # Calculate velocities
     radius = 6371000.0
-    for i in range(0, len(track_points)):
-        timestamp, latitude, longitude, *_ = track_points[i]
+    for i in range(0, len(track_points_temp)):
+        timestamp, latitude, longitude, *_ = track_points_temp[i]
         if i==0:
             vx = 0
             vy = 0
         else:
-            time_delta = (track_points[i][0]-track_points[i-1][0]).total_seconds()
-            lon_prev = track_points[i-1][2]
-            lat_prev = track_points[i-1][1]
+            time_delta = (track_points_temp[i][0]-track_points_temp[i-1][0]).total_seconds()
+            lon_prev = track_points_temp[i-1][2]
+            lat_prev = track_points_temp[i-1][1]
             if time_delta == 0: # old velocities
-                vx = track_points[i-1][4]
-                vy = track_points[i-1][5]
+                vx = track_points_temp[i-1][4]
+                vy = track_points_temp[i-1][5]
             else:
                 vx = (longitude-lon_prev) * math.pi * radius / 180 / time_delta * math.cos(lat*math.pi/180)
                 vy = (lat_prev-latitude) * math.pi * radius / 180 / time_delta
             
-        track_points[i].append(vx)
-        track_points[i].append(vy)
+        track_points_temp[i].append(vx)
+        track_points_temp[i].append(vy)
 
     # Calculate distance
     dist = 0
     dist_threshold = 300
-    prev_lat = track_points[0][1]
-    prev_lon = track_points[0][2]
+    prev_lat = track_points_temp[0][1]
+    prev_lon = track_points_temp[0][2]
     print("Calculating distances...")
-    for i in range(0, len(track_points)):
+    for i in range(0, len(track_points_temp)):
         # find distance between current point and prev_lat, prev_lon
-        d_y = (prev_lat - track_points[i][1]) / 180 * math.pi * radius
-        d_x = (track_points[i][2] - prev_lon) / 180 * math.pi * math.cos(prev_lat/180*math.pi) * radius
+        d_y = (prev_lat - track_points_temp[i][1]) / 180 * math.pi * radius
+        d_x = (track_points_temp[i][2] - prev_lon) / 180 * math.pi * math.cos(prev_lat/180*math.pi) * radius
         new_dist = math.sqrt(d_y*d_y + d_x*d_x)
         if new_dist > dist_threshold:
             dist = dist + new_dist
-            prev_lat = track_points[i][1]
-            prev_lon = track_points[i][2]
-        track_points[i].append(dist)
+            prev_lat = track_points_temp[i][1]
+            prev_lon = track_points_temp[i][2]
+        track_points_temp[i].append(dist)
 
     print(f"Distance: {round(dist/1000)} km. Finishing 2D-array...")
 
     # Store data with uniform time step
-    track_points3 = []
-    current_time = track_points[0][0]
+    track_points = []
+    current_time = track_points_temp[0][0]
     i = 0 # index of old array
-    while current_time < track_points[-1][0]:  # Loop until the last of the original track_points
+    while current_time < track_points_temp[-1][0]:  # Loop until the last of the original track_points
         
         # Find the appropriate i such that track_points[i][0] <= current_time < track_points[i+1][0]
-        while i < len(track_points) - 1 and current_time >= track_points[i + 1][0]:
+        while i < len(track_points_temp) - 1 and current_time >= track_points_temp[i + 1][0]:
             i += 1
-        t1, lat1, lon1, ele1, vx1, vy1, dist1 = track_points[i]
-        t2, lat2, lon2, ele2, vx2, vy2, dist2 = track_points[i + 1]
+        t1, lat1, lon1, ele1, vx1, vy1, dist1 = track_points_temp[i]
+        t2, lat2, lon2, ele2, vx2, vy2, dist2 = track_points_temp[i + 1]
         fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         
         # Interpolate
@@ -104,14 +104,14 @@ def process_tracklog(file_path, dt, speedup):
 
         v = math.sqrt(vx*vx+vy*vy)
         if (vx == 0) & (vy == 0):
-            if len(track_points3) > 0:
-                phi = track_points3[-1]["direction"] # old angle
+            if len(track_points) > 0:
+                phi = track_points[-1]["direction"] # old angle
             else:
                 phi = 0
         else:
             phi = math.atan2(vy,vx)
         
-        if len(track_points3) == 0:
+        if len(track_points) == 0:
             vario = 0
         else:
             vario = -(ele - ele_old) / dt
@@ -128,7 +128,7 @@ def process_tracklog(file_path, dt, speedup):
             "distance": dist,
             "vario": vario
         }
-        track_points3.append(track_point)
+        track_points.append(track_point)
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
@@ -138,44 +138,44 @@ def process_tracklog(file_path, dt, speedup):
     smoothing_time_phi = 10
     window_size = round(smoothing_time_vario / dt / 2) * 2 - 1
     
-    vario_data = [point["vario"] for point in track_points3]
+    vario_data = [point["vario"] for point in track_points]
     smoothed_vario = smooth_data(vario_data, window_size)
-    for i, point in enumerate(track_points3):
+    for i, point in enumerate(track_points):
         if i < len(smoothed_vario):
             point["vario"] = smoothed_vario[i]
     
     window_size = round(smoothing_time_phi / dt / 2) * 2 - 1
-    direction_data = [point["direction"] for point in track_points3]
+    direction_data = [point["direction"] for point in track_points]
     smoothed_direction = smooth_angles(direction_data, window_size)
-    for i, point in enumerate(track_points3):
+    for i, point in enumerate(track_points):
         if i < len(smoothed_direction):
             point["direction"] = smoothed_direction[i]
 
     # Find ground elevation
     print("Finding ground elevation...")
-    heightmap_resolution = 500
+    heightmap_resolution = 500 # meters
     resolution_lat = round(heightmap_resolution / radius / math.pi * 180, 5)
     resolution_lon = round(heightmap_resolution / radius / math.pi * 180 / math.cos(lat*math.pi/180), 5)
     coordinates = []
-    for point in track_points3:
+    for point in track_points:
         lat = point["lat"]
         lon = point["lon"]
         coordinates.append([lat, lon])
     ground_heights = get_elevation_from_cache(coordinates, resolution_lat, resolution_lon)
-    for i, point in enumerate(track_points3):
-        track_points3[i]["agl"] = max(point["elevation"] - ground_heights[i], 0)
+    for i, point in enumerate(track_points):
+        track_points[i]["agl"] = max(point["elevation"] - ground_heights[i], 0)
 
 
     # Limit refresh rate of v, elev and vario
     update_interval_playback = 1
     interval = timedelta(seconds=speedup*update_interval_playback)
-    start_time = track_points3[0]["timestamp"]
+    start_time = track_points[0]["timestamp"]
     sum_velocity = 0
     sum_ele = 0
     sum_agl = 0
     sum_vario = 0
     count = 0
-    for i, point in enumerate(track_points3):
+    for i, point in enumerate(track_points):
         timepoint = point["timestamp"]
         ele = point["elevation"]
         agl = point["agl"]
@@ -191,10 +191,10 @@ def process_tracklog(file_path, dt, speedup):
         else:
             # Insert average velocity
             for j in range(i - count, i):
-                track_points3[j]["velocity"] = sum_velocity / count
-                track_points3[j]["elevation"] = sum_ele / count
-                track_points3[j]["agl"] = sum_agl / count
-                track_points3[j]["vario_low_refresh"] = sum_vario / count
+                track_points[j]["velocity"] = sum_velocity / count
+                track_points[j]["elevation"] = sum_ele / count
+                track_points[j]["agl"] = sum_agl / count
+                track_points[j]["vario_low_refresh"] = sum_vario / count
 
             # Reset interval data for the new interval
             sum_velocity = velocity
@@ -206,21 +206,21 @@ def process_tracklog(file_path, dt, speedup):
     
     # Update the last interval if not already done
     if count > 0:
-        for j in range(len(track_points3) - count, len(track_points3)):
-            track_points3[j]["velocity"] = sum_velocity / count
-            track_points3[j]["elevation"] = sum_ele / count
-            track_points3[j]["agl"] = sum_agl / count
-            track_points3[j]["vario_low_refresh"] = sum_vario / count
+        for j in range(len(track_points) - count, len(track_points)):
+            track_points[j]["velocity"] = sum_velocity / count
+            track_points[j]["elevation"] = sum_ele / count
+            track_points[j]["agl"] = sum_agl / count
+            track_points[j]["vario_low_refresh"] = sum_vario / count
     
     # Add local time
     tf = TimezoneFinder()
-    timezone_str = tf.timezone_at(lat=track_points3[0]["lat"], lng=track_points3[0]["lon"])
-    for point in track_points3:
+    timezone_str = tf.timezone_at(lat=track_points[0]["lat"], lng=track_points[0]["lon"])
+    for point in track_points:
         utc_time = point["timestamp"]
         local_time = utc_time.replace(tzinfo=ZoneInfo('UTC')).astimezone(ZoneInfo(timezone_str))
         #point.append(local_time)
         point["local_time"] = local_time
     
     print("Made 2D-array from trackfile")
-    return track_points3, track_metadata
+    return track_points, track_metadata
 

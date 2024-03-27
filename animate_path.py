@@ -124,7 +124,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             camera = 4
         
         # Calc big image bounds once every tm cycle
-        if tm == t1: # As camera 2 starts:
+        if tm == t1 or i == 0: # As camera 2 starts:
             i_critical = i + (t2 + t3) * fps
             if video_time_remaining <= t5 + t2 + t1 + t4 + t3 + t2:
                 i_critical = len(track_points) - 1

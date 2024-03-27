@@ -1,11 +1,11 @@
 
-track_file = "tracklogs/benz.igc"
-speedup = 66
-fps = 30
+track_file = "tracklogs/fly230324.igc"
+speedup = 16
+fps = 60
 anim_height = 1080
 overlay_width = 300
-minimap_km = 4
-transparent = False
+minimap_km = 2
+transparent = True
 # Speedup should be 25. minimap_km should be 4-6. 
 
 dt = speedup / fps
