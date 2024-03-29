@@ -1,6 +1,6 @@
 
 track_file = "tracklogs/jama.igc"
-speedup = 16
+speedup = 20
 fps = 30
 anim_height = 1080
 overlay_width = 300
