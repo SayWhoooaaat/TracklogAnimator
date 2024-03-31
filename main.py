@@ -1,6 +1,6 @@
 
-track_file = "tracklogs/jama.igc"
-speedup = 20
+track_file = "tracklogs/fly230324.igc"
+speedup = 16
 fps = 30
 anim_height = 1080
 overlay_width = 300

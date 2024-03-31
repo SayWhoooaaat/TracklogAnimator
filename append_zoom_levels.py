@@ -38,7 +38,7 @@ def append_zoom_levels(track_points, map_width, fps):
     n = max(0, math.floor(tx / (t2 + t3 + t4 + t1)))
     no_maps = len(track_points[0]["map_coordinate"])
     print(f"n: {n}, t_tot = {t_total}, t0 = {t0}, tx = {tx}, no_maps = {no_maps}")
-    padding = 20
+    padding = 40
 
     # ALLOCATE ZOOM FRACTIONS
     # All values
