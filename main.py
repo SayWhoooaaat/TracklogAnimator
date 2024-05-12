@@ -1,13 +1,16 @@
 
-track_file = "tracklogs/fly230324.igc"
-speedup = 16
-fps = 30
+track_file = "tracklogs/solberg.igc"
+speedup = 60 # Should be 24
+fps = 59.94 # Should be 59.94
 anim_height = 1080
-overlay_width = 300
-minimap_km = 2
-transparent = False
-# Speedup should be 25. minimap_km should be 4-6. 
+overlay_width_percentage = 13
+minimap_km = 4 # Should be 4-6
+transparent = True
+challenge = 1 # 1 = distance, 2 = out and return, 3 = circle, 4 = spot landing
+pb = 9 # km, km, km^2
 
+
+overlay_width = round(anim_height / 9 * 16 * overlay_width_percentage / 100)
 dt = speedup / fps
 
 
@@ -33,7 +36,7 @@ from draw_path import draw_path # Unnecessary, but good for testing
 draw_path(minimap_images, track_points) 
 
 from get_preview import get_preview
-get_preview(track_points, minimap_images, map_metadata, outline_image, overlay_width)
+get_preview(track_points, minimap_images, map_metadata, outline_image, overlay_width, anim_height, challenge, pb)
 
 from animate_path import animate_path
 animate_path(track_points, minimap_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent)

@@ -117,6 +117,11 @@ def process_tracklog(file_path, dt, speedup):
             vario = -(ele - ele_old) / dt
         ele_old = ele
 
+        # Find straight line distances
+        y_distance = (track_points_temp[0][1] - lat) / 180 * math.pi * radius
+        x_distance = (lon - track_points_temp[0][2]) / 180 * math.pi * math.cos(lat/180*math.pi) * radius
+        sl_distance = math.sqrt(y_distance*y_distance + x_distance*x_distance)
+
         # append values to new array
         track_point = {
             "timestamp": current_time,
@@ -126,7 +131,8 @@ def process_tracklog(file_path, dt, speedup):
             "velocity": v,
             "direction": phi,
             "distance": dist,
-            "vario": vario
+            "vario": vario,
+            "sl_distance": sl_distance
         }
         track_points.append(track_point)
 

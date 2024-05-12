@@ -49,12 +49,12 @@ def append_zoom_levels(track_points, map_width, fps):
     # Last values
     scale = (track_points[-1]["pixel_distance_line"] + padding) / map_width
     zoom_level = min(max(math.ceil(math.log2(max(1,scale))), 0), no_maps-1)
-    for i in range(0, min(len(track_points), fps * t5)): # Last big map
+    for i in range(0, min(len(track_points), int(fps * t5))): # Last big map
         track_points[-1 - i]["fraction"] = 1
         track_points[-1 - i]["zoom_level"] = zoom_level
-    if len(track_points) > fps * (t5 + t2):
-        for i in range(0, fps * t2): # last zoom out
-            j = len(track_points) - fps * (t5 + t2) + i
+    if len(track_points) > int(fps * (t5 + t2)):
+        for i in range(0, int(fps * t2)): # last zoom out
+            j = len(track_points) - int(fps * (t5 + t2)) + i
             track_points[j]["fraction"] = i / (fps * t2)
             track_points[j]["zoom_level"] = track_points[j]["fraction"] * zoom_level
     else: # super short tracklog
@@ -64,19 +64,19 @@ def append_zoom_levels(track_points, map_width, fps):
     
     # Values every cycle
     for p in range(0, n):
-        i_crit = fps * (t0 + (p + 1) * (t1 + t2 + t3 + t4))
+        i_crit = int(fps * (t0 + (p + 1) * (t1 + t2 + t3 + t4)))
         scale = (track_points[i_crit]["pixel_distance_line"] + padding) / map_width
         zoom_level = min(max(math.ceil(math.log2(max(1,scale))), 0), no_maps-1)
         print(p, scale, zoom_level)
-        for i in range(0, fps * (t2 + t3 + t4 + t1)):
-            j = fps * (t0 + t1 + p*(t2 + t3 + t4 + t1)) + i
-            if i < fps * t2: # zoom out
+        for i in range(0, int(fps * (t2 + t3 + t4 + t1))):
+            j = int(fps * (t0 + t1 + p*(t2 + t3 + t4 + t1))) + i
+            if i < int(fps * t2): # zoom out
                 track_points[j]["fraction"] = i / (fps * t2)
                 track_points[j]["zoom_level"] = track_points[j]["fraction"] * zoom_level
-            elif i < fps * (t2 + t3): # big map
+            elif i < int(fps * (t2 + t3)): # big map
                 track_points[j]["fraction"] = 1
                 track_points[j]["zoom_level"] = zoom_level
-            elif i < fps * (t2 + t3 + t4): # zoom in
+            elif i < int(fps * (t2 + t3 + t4)): # zoom in
                 track_points[j]["fraction"] = 1 - (i - fps * (t2 + t3)) / (fps * t4)
                 track_points[j]["zoom_level"] = track_points[j]["fraction"] * zoom_level
             else: # small map
