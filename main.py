@@ -5,12 +5,14 @@ fps = 30 # Should be 59.94
 anim_height = 1080
 overlay_width_percentage = 14
 minimap_km = 4 # Should be 4-6
+map_scale = 1.25
 transparent = False # Should be True
 challenge = 1 # 1 = distance, 2 = out and return, 3 = circle, 4 = spot landing
 pb = 9 # km, km, km^2
 
 
 overlay_width = round(anim_height / 9 * 16 * overlay_width_percentage / 100)
+minimap_width = round(1080 / 9 * 16 * overlay_width_percentage / 100 * map_scale)
 dt = speedup / fps
 
 
@@ -18,7 +20,7 @@ from process_tracklog import process_tracklog
 track_points, track_metadata = process_tracklog(track_file, dt, speedup)
 
 from get_map import get_map
-minimap_images, map_metadata = get_map(track_metadata, overlay_width, minimap_km, track_points)
+minimap_images, map_metadata = get_map(track_metadata, minimap_width, overlay_width, minimap_km, track_points)
 
 from get_outline import get_outline
 outline_image, outline_metadata = get_outline(track_points, overlay_width, anim_height)

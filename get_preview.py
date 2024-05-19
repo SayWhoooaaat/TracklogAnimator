@@ -93,7 +93,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     cropped_image = cropped_image.convert("RGBA")
 
     position_minimap = (0, base_image.size[1] - cropped_image.size[1])
-    position_outline = (0, round(anim_height*0.1))
+    position_outline = (round(10*scale), round(anim_height*0.1))
 
     base_image.paste(cropped_image, position_minimap, cropped_image)
     base_image.paste(outline_with_dot, position_outline, outline_with_dot)

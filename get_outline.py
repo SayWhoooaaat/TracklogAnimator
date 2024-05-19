@@ -142,7 +142,9 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
     return (img, adjusted_bbox.bounds, height)
 
 def get_outline(track_points, width, anim_height):
-    height_max = anim_height - width - 150
+    height_max = anim_height * 0.85 - width
+    width = round(width * 0.5) # scaling down outline image
+
     # Simplify tracklog
     timeinterval = 120
     current_time = track_points[0]["timestamp"]

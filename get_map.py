@@ -57,7 +57,8 @@ def lat_lon_to_tile_coords(lat_deg, lon_deg, zoom):
     return int(x_tile), int(y_tile)
 
 
-def get_map(track_metadata, anim_pixels, anim_km, track_points):
+def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
+    scale = overlay_width / anim_pixels
     lat_min = track_metadata['min_latitude']
     lat_max = track_metadata['max_latitude']
     lon_min = track_metadata['min_longitude']
@@ -139,10 +140,14 @@ def get_map(track_metadata, anim_pixels, anim_km, track_points):
                 if tile_img is not None:  # Pasting
                     map_images[i].paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
         # Save the stitched map image
+        width = round(map_images[i].size[0] * scale)
+        height = round(map_images[i].size[1] * scale)
+        new_size = (width, height)
+        map_images[i] = map_images[i].resize(new_size, Image.Resampling.LANCZOS)
         map_images[i].save(f'media/map_stitched{i}.png')
     
         # Calculate map_metadata
-        m_px = 2*math.pi/(2**zoom)/cell_size*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
+        m_px = 2*math.pi/(2**zoom)/cell_size/scale*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
         
         lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180
         lon_max_tile = (x_max + 2) * 360 / 2.0**zoom - 180
