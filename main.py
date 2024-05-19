@@ -1,11 +1,11 @@
 
-track_file = "tracklogs/solberg.igc"
+track_file = "tracklogs/loen.gpx"
 speedup = 60 # Should be 24
-fps = 59.94 # Should be 59.94
+fps = 30 # Should be 59.94
 anim_height = 1080
-overlay_width_percentage = 13
+overlay_width_percentage = 14
 minimap_km = 4 # Should be 4-6
-transparent = True
+transparent = False # Should be True
 challenge = 1 # 1 = distance, 2 = out and return, 3 = circle, 4 = spot landing
 pb = 9 # km, km, km^2
 

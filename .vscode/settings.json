@@ -1,3 +1,14 @@
 {
-    "python.analysis.typeCheckingMode": "off"
+    "python.analysis.typeCheckingMode": "off",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell (with env)": {
+            "source": "PowerShell",
+            "args": [
+                "-NoExit",
+                "-Command",
+                "Set-Location -Path '${workspaceFolder}'; .\\env\\Scripts\\activate"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (with env)"
 }
