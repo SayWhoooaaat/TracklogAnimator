@@ -138,7 +138,6 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
                 normalized_y = [height - (i - bbox2_ymin) / scale for i in y]
                 draw.polygon(list(zip(normalized_x, normalized_y)), fill=None, outline=(255, 255, 255, 255))
 
-    img.save("media/country_outline.png")
     return (img, adjusted_bbox.bounds, height)
 
 def get_outline(track_points, anim_width, anim_height):
@@ -255,6 +254,7 @@ def get_outline(track_points, anim_width, anim_height):
     new_size = (width, height)
     outline_image = outline_image.resize(new_size, Image.Resampling.LANCZOS)
     lon_min, lat_min, lon_max, lat_max = bounding_coords
+    outline_image.save("media/country_outline.png")
     print("Saved country map")
     
     outline_metadata = [lon_min, lat_min, lon_max, lat_max, width, height]

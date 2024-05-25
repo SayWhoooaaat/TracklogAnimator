@@ -6,6 +6,8 @@ import sys
 import time
 import csv
 from datetime import datetime
+import json
+from animation_utils import make_altibar_frame
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -20,9 +22,9 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def animate_path(track_points, map_images, map_metadata, outline_image, fps, overlay_width, total_height, transparent):
-    res_scale = total_height / 1080
-    path_linewidth = 1
+def animate_path(track_points, map_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent, challenge, pb):
+    res_scale = anim_height / 1080
+    path_linewidth = round(res_scale)
     arrow = [(-8,-6), (8,0), (-8,6)]
     vertical_arrow = [(-1,-3), (1,-3), (1,0), (2,0), (0,3), (-2,0), (-1,0)]
     horizontal_arrow = [(-3,-1), (-3,1), (0,1), (0,2), (3,0), (0,-2), (0,-1)]
@@ -175,16 +177,16 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
 
         # STEP 3: PUT IMAGES TOGETHER
-        animation_frame = Image.new("RGBA", (width, total_height), (0, 0, 0, 0))
+        animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
         cropped_image = cropped_image.convert("RGBA")
 
         position_minimap = (0, animation_frame.size[1] - cropped_image.size[1])
-        position_outline = (0, animation_frame.size[1] - cropped_image.size[1] - outline_image.size[1] - 70)
+        position_outline = (round(10*res_scale), round(anim_height*0.1))
 
         animation_frame.paste(cropped_image, position_minimap, cropped_image)
         animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
-        # Drawing text
+        # Extract data
         localtime = track_points[i]["local_time"]
         ele = track_points[i]["elevation"]
         agl = track_points[i]["agl"]
@@ -192,23 +194,32 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         dist = track_points[i]["distance"]
         vario = track_points[i]["vario"]
         vario_lr = track_points[i]["vario_low_refresh"]
+        sl_distance = track_points[i]["sl_distance"]
 
+        # Draw datetime
         current_time = localtime.strftime("%H:%M")
         current_date = localtime.strftime("%Y-%m-%d")
 
         draw6 = ImageDraw.Draw(animation_frame)
-        draw6.text((30,30), current_time, font=ImageFont.truetype("arial.ttf", 40), fill='white')
-        draw6.text((38,76), current_date, font=ImageFont.truetype("arial.ttf", 16), fill='white')
-        draw6.text((30,720), f"{round(agl/10)*10} m", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        # Draw vario-arrow
-        arrow_scale = -min(6, 3 - vario / 2) if vario < 0 else 3
-        scaled_arrow = [(160 + px * arrow_scale, 736 + py * arrow_scale) for px, py in vertical_arrow]
-        draw6.polygon(scaled_arrow, outline ='white', width=2)
-        draw6.text((180,720), f"{round(abs(vario_lr*3.6))} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        # Draw static speed arrow
-        draw6.polygon(horizontal_arrow, outline ='white', width=2)
-        draw6.text((180,750), f"{round(v*3.6)} km/h", font=ImageFont.truetype("arial.ttf", 24), fill='white')
-        draw6.text((30,750), f"{round(dist/1000)} km", font=ImageFont.truetype("arial.ttf", 24), fill='white')
+        draw6.text((30*res_scale,30*res_scale), current_time, font=ImageFont.truetype("arial.ttf", round(40*res_scale)), fill='white')
+        draw6.text((38*res_scale,76*res_scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*res_scale)), fill='white')
+        
+        # Draw altibar
+        max_elevation = max(point["elevation"] for point in track_points)
+        altibar_height = round(280 * res_scale)
+        altibar_image = make_altibar_frame(width, altibar_height, res_scale, ele, agl, vario, vario_lr, max_elevation)
+        altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
+        animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
+
+        # Draw goal
+        textsize = round(18*res_scale)
+        font = ImageFont.truetype("arial.ttf", textsize)
+        if challenge == 1: # Straight line distance
+            goal_text = f"Distance from start: {round(sl_distance/1000)} km\nPB: {round(pb)} km"
+        elif challenge == 2: # Out and return
+            goal_text = f"Out and return\nNot yet programmed."
+        
+        draw6.text((8*res_scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
 
         # Save frame as png:
         frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')
@@ -251,4 +262,56 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         os.remove(os.path.join(temp_folder, file_name))
 
     return
+
+
+
+# Testing purposes:
+if __name__ == "__main__":
+    filename = 'track_points.csv'
+    # read track points
+    track_points = []
+    datetime_fields = ['local_time', 'timestamp']
+    with open(filename, 'r', newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            for key, value in row.items():
+                try:
+                    # Try converting to float if possible
+                    row[key] = float(value)
+                except ValueError:
+                    # Check if it's a datetime field and convert
+                    if key in datetime_fields:
+                        row[key] = datetime.fromisoformat(value)
+                    else:
+                        # If conversion fails, check if it's a JSON string
+                        try:
+                            row[key] = json.loads(value)
+                        except json.JSONDecodeError:
+                            # If it's not JSON, leave it as the original string
+                            pass
+            track_points.append(row)
+    #print(track_points[30])
+
+    # Read maps
+    no_map_images = len(track_points[0]["map_coordinate"])
+    print(no_map_images)
+    map_images = []
+    for i in range(no_map_images):
+        map_image = Image.open(f"media/map_stitched{i}.png").convert("RGB")
+        map_images.append(map_image) 
+
+    outline_image_static = Image.open("media/country_outline.png").convert("RGBA")
+
+    overlay_width = 250
+    anim_height = 1080
+    fps = 30
+    transparent = False
+    challenge = 1
+    pb = 9
+
+    map_metadata = []
+    map_metadata.append([0, 0, 0, 0, 0, 0, 16])
+
+    animate_path(track_points, map_images, map_metadata, outline_image_static, fps, overlay_width, anim_height, transparent, challenge, pb)
+
 

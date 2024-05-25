@@ -41,7 +41,7 @@ from get_preview import get_preview
 get_preview(track_points, minimap_images, map_metadata, outline_image, overlay_width, anim_height, challenge, pb)
 
 from animate_path import animate_path
-animate_path(track_points, minimap_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent)
+animate_path(track_points, minimap_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent, challenge, pb)
 
 print("Done!")
 
