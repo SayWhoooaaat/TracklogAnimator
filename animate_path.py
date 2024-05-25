@@ -25,7 +25,7 @@ def get_ruler_km(map_km):
 def animate_path(track_points, map_images, map_metadata, outline_image, fps, overlay_width, anim_height, transparent, challenge, pb):
     res_scale = anim_height / 1080
     path_linewidth = round(res_scale)
-    arrow = [(-8,-6), (8,0), (-8,6)]
+    arrow = [(-8*res_scale,-6*res_scale), (8*res_scale,0), (-8*res_scale,6*res_scale)]
     vertical_arrow = [(-1,-3), (1,-3), (1,0), (2,0), (0,3), (-2,0), (-1,0)]
     horizontal_arrow = [(-3,-1), (-3,1), (0,1), (0,2), (3,0), (0,-2), (0,-1)]
     horizontal_arrow = [(160 + px*3, 762 + py*3) for px, py in horizontal_arrow]
@@ -152,15 +152,15 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         ruler_km = get_ruler_km(width * m_px2 / 1000)
         ruler_pixels = ruler_km * 1000 / m_px2
         ruler_text = f"{ruler_km} km"
-        font = ImageFont.truetype("arial.ttf", size=14)
+        font = ImageFont.truetype("arial.ttf", size=round(14*res_scale))
 
-        draw3.line((width-8, height-14, width-8, height-8), fill='white', width=1)
-        draw3.line((width-8, height-8, width-8-ruler_pixels, height-8), fill='white', width=1)
-        draw3.line((width-8-ruler_pixels, height-8, width-8-ruler_pixels, height-14), fill='white', width=1)
+        draw3.line((width-8*res_scale, height-14*res_scale, width-8*res_scale, height-8*res_scale), fill='white', width=round(res_scale))
+        draw3.line((width-8*res_scale, height-8*res_scale, width-8*res_scale-ruler_pixels, height-8*res_scale), fill='white', width=round(res_scale))
+        draw3.line((width-8*res_scale-ruler_pixels, height-8*res_scale, width-8*res_scale-ruler_pixels, height-14*res_scale), fill='white', width=round(res_scale))
         bbox = draw3.textbbox((0, 0), ruler_text, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
-        draw3.text((width-18-ruler_pixels-text_width, height-8-text_height), ruler_text, fill="white", font=font)
+        draw3.text((width-18*res_scale-ruler_pixels-text_width, height-8*res_scale-text_height), ruler_text, fill="white", font=font)
 
 
         # STEP 2: MAKE OUTLINE-MAP FRAME
@@ -169,12 +169,12 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=1)
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=round(res_scale))
         last_x_outline, last_y_outline = x_outline, y_outline
         # Draws arrow at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
         draw5 = ImageDraw.Draw(outline_with_dot)
-        draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
+        draw5.ellipse([x_outline - 2*res_scale, y_outline - 2*res_scale, x_outline + 2*res_scale, y_outline + 2*res_scale], fill='red')
 
         # STEP 3: PUT IMAGES TOGETHER
         animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
@@ -188,12 +188,14 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
 
         # Extract data
         localtime = track_points[i]["local_time"]
-        ele = track_points[i]["elevation"]
-        agl = track_points[i]["agl"]
+        altitude = track_points[i]["altitude"]
+        elevation = track_points[i]["elevation"]
         v = track_points[i]["velocity"]
         dist = track_points[i]["distance"]
         vario = track_points[i]["vario"]
-        vario_lr = track_points[i]["vario_low_refresh"]
+        altitude_lr = track_points[i]["altitude_lr"]
+        elevation_lr = track_points[i]["elevation_lr"]
+        vario_lr = track_points[i]["vario_lr"]
         sl_distance = track_points[i]["sl_distance"]
 
         # Draw datetime
@@ -205,9 +207,9 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         draw6.text((38*res_scale,76*res_scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*res_scale)), fill='white')
         
         # Draw altibar
-        max_elevation = max(point["elevation"] for point in track_points)
+        max_altitude = max(point["altitude"] for point in track_points)
         altibar_height = round(280 * res_scale)
-        altibar_image = make_altibar_frame(width, altibar_height, res_scale, ele, agl, vario, vario_lr, max_elevation)
+        altibar_image = make_altibar_frame(width, altibar_height, res_scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr)
         altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
         animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
 
@@ -302,8 +304,8 @@ if __name__ == "__main__":
 
     outline_image_static = Image.open("media/country_outline.png").convert("RGBA")
 
-    overlay_width = 250
     anim_height = 1080
+    overlay_width = 250
     fps = 30
     transparent = False
     challenge = 1

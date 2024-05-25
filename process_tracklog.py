@@ -90,12 +90,12 @@ def process_tracklog(file_path, dt, speedup):
         # Find the appropriate i such that track_points[i][0] <= current_time < track_points[i+1][0]
         while i < len(track_points_temp) - 1 and current_time >= track_points_temp[i + 1][0]:
             i += 1
-        t1, lat1, lon1, ele1, vx1, vy1, dist1 = track_points_temp[i]
-        t2, lat2, lon2, ele2, vx2, vy2, dist2 = track_points_temp[i + 1]
+        t1, lat1, lon1, alt1, vx1, vy1, dist1 = track_points_temp[i]
+        t2, lat2, lon2, alt2, vx2, vy2, dist2 = track_points_temp[i + 1]
         fraction = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         
         # Interpolate
-        ele = ele1 + fraction * (ele2 - ele1)
+        altitude = alt1 + fraction * (alt2 - alt1)
         vx = vx1 + fraction * (vx2 - vx1)
         vy = vy1 + fraction * (vy2 - vy1)
         lat = lat1 + fraction * (lat2 - lat1)
@@ -114,8 +114,8 @@ def process_tracklog(file_path, dt, speedup):
         if len(track_points) == 0:
             vario = 0
         else:
-            vario = -(ele - ele_old) / dt
-        ele_old = ele
+            vario = -(altitude - alt_old) / dt
+        alt_old = altitude
 
         # Find straight line distances
         y_distance = (track_points_temp[0][1] - lat) / 180 * math.pi * radius
@@ -127,7 +127,7 @@ def process_tracklog(file_path, dt, speedup):
             "timestamp": current_time,
             "lat": lat,
             "lon": lon,
-            "elevation": ele,
+            "altitude": altitude,
             "velocity": v,
             "direction": phi,
             "distance": dist,
@@ -169,7 +169,7 @@ def process_tracklog(file_path, dt, speedup):
         coordinates.append([lat, lon])
     ground_heights = get_elevation_from_cache(coordinates, resolution_lat, resolution_lon)
     for i, point in enumerate(track_points):
-        track_points[i]["agl"] = max(point["elevation"] - ground_heights[i], 0)
+        track_points[i]["elevation"] = max(ground_heights[i], 0)
 
 
     # Limit refresh rate of v, elev and vario
@@ -177,35 +177,35 @@ def process_tracklog(file_path, dt, speedup):
     interval = timedelta(seconds=speedup*update_interval_playback)
     start_time = track_points[0]["timestamp"]
     sum_velocity = 0
-    sum_ele = 0
-    sum_agl = 0
+    sum_altitude = 0
+    sum_elevation = 0
     sum_vario = 0
     count = 0
     for i, point in enumerate(track_points):
         timepoint = point["timestamp"]
-        ele = point["elevation"]
-        agl = point["agl"]
+        altitude = point["altitude"]
+        elevation = point["elevation"]
         velocity = point["velocity"]
         vario = point["vario"]
         if timepoint < start_time + interval:
             # Accumulate velocity
             sum_velocity += velocity
-            sum_ele += ele
-            sum_agl += agl
+            sum_altitude += altitude
+            sum_elevation += elevation
             sum_vario += vario
             count += 1
         else:
             # Insert average velocity
             for j in range(i - count, i):
-                track_points[j]["velocity"] = sum_velocity / count
-                track_points[j]["elevation"] = sum_ele / count
-                track_points[j]["agl"] = sum_agl / count
-                track_points[j]["vario_low_refresh"] = sum_vario / count
+                track_points[j]["velocity_lr"] = sum_velocity / count
+                track_points[j]["altitude_lr"] = sum_altitude / count
+                track_points[j]["elevation_lr"] = sum_elevation / count
+                track_points[j]["vario_lr"] = sum_vario / count
 
             # Reset interval data for the new interval
             sum_velocity = velocity
-            sum_ele = ele
-            sum_agl = agl
+            sum_altitude = altitude
+            sum_elevation = elevation
             sum_vario = vario
             count = 1
             start_time = timepoint
@@ -213,10 +213,10 @@ def process_tracklog(file_path, dt, speedup):
     # Update the last interval if not already done
     if count > 0:
         for j in range(len(track_points) - count, len(track_points)):
-            track_points[j]["velocity"] = sum_velocity / count
-            track_points[j]["elevation"] = sum_ele / count
-            track_points[j]["agl"] = sum_agl / count
-            track_points[j]["vario_low_refresh"] = sum_vario / count
+            track_points[j]["velocity_lr"] = sum_velocity / count
+            track_points[j]["altitude_lr"] = sum_altitude / count
+            track_points[j]["elevation_lr"] = sum_elevation / count
+            track_points[j]["vario_lr"] = sum_vario / count
     
     # Add local time
     tf = TimezoneFinder()

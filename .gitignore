@@ -9,3 +9,4 @@ env/
 *.jpg
 media/
 tracklogs/
+__pycache__/

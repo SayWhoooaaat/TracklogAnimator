@@ -100,12 +100,14 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
 
     # Extract data
     localtime = track_points[i]["local_time"]
-    ele = track_points[i]["elevation"]
-    agl = track_points[i]["agl"]
+    altitude = track_points[i]["altitude"]
+    elevation = track_points[i]["elevation"]
     v = track_points[i]["velocity"]
     dist = track_points[i]["distance"]
     vario = track_points[i]["vario"]
-    vario_lr = track_points[i]["vario_low_refresh"]
+    altitude_lr = track_points[i]["altitude_lr"]
+    elevation_lr = track_points[i]["elevation_lr"]
+    vario_lr = track_points[i]["vario_lr"]
     sl_distance = track_points[i]["sl_distance"]
 
     # Draw datetime
@@ -117,9 +119,9 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     draw6.text((38*scale,76*scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*scale)), fill='white')
     
     # Draw altibar
-    max_elevation = max(point["elevation"] for point in track_points)
+    max_altitude = max(point["altitude"] for point in track_points)
     altibar_height = round(280 * scale)
-    altibar_image = make_altibar_frame(width, altibar_height, scale, ele, agl, vario, vario_lr, max_elevation)
+    altibar_image = make_altibar_frame(width, altibar_height, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr)
     altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
     base_image.paste(altibar_image, (0,altibar_y), altibar_image)
 

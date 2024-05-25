@@ -1,12 +1,12 @@
 from PIL import Image, ImageDraw, ImageFont
 
-def make_altibar_frame(w, h, scale, ele, agl, vario, vario_lr, max_elevation):
+def make_altibar_frame(w, h, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr):
     image = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     textsize = round(20*scale)
     font = ImageFont.truetype("arial.ttf", textsize)
 
-    bar_max = max(2000, int(max_elevation/1000 + 1) * 1000)
+    bar_max = max(2000, int(max_altitude/1000 + 1) * 1000)
 
     bar_width = 30*scale
     bar_height = round(h*0.8)
@@ -14,9 +14,8 @@ def make_altibar_frame(w, h, scale, ele, agl, vario, vario_lr, max_elevation):
     bar_y = round(h*0.1)
 
     # Find y-positions
-    ground_level = ele - agl
-    altibar_pilot = ele / bar_max * bar_height
-    altibar_ground = ground_level / bar_max * bar_height
+    altibar_pilot = altitude / bar_max * bar_height
+    altibar_ground = elevation / bar_max * bar_height
 
     # Draw bar
     draw.rectangle([bar_x, bar_y, bar_x + bar_width, bar_y + bar_height], fill=(240, 240, 240, 100), outline ='black', width=round(2*scale))
@@ -43,8 +42,8 @@ def make_altibar_frame(w, h, scale, ele, agl, vario, vario_lr, max_elevation):
 
 
     # Find text positions
-    ground_text = f"{round(ground_level/10)*10}"
-    pilot_text = f"{round(ele/10)*10} m"
+    ground_text = f"{round(elevation_lr/10)*10}"
+    pilot_text = f"{round(altitude_lr/10)*10} m"
     barmax_text = f"{bar_max}"
     if arrow_height == 0:
         vario_text = ""
@@ -70,16 +69,16 @@ if __name__ == "__main__":
     w = 250
     h = 280
     scale = 1.001
-    ele = 911
-    agl = 630
+    altitude = 911
+    elevation = 340
     vario = -3 # negative is up
     vario_lr = vario
-    max_elevation = 1401
+    max_altitude = 1401
 
     base_image = Image.open("media/preview_background.png").convert("RGBA")
 
     # Calling function
-    altibar_image = make_altibar_frame(w,h,scale,ele,agl,vario, vario_lr,max_elevation)
+    altibar_image = make_altibar_frame(w,h,scale,altitude,elevation,vario, vario_lr,max_altitude)
 
     base_image.paste(altibar_image, (0, round(1080*0.4)), altibar_image)
     base_image.save("media/altibar_test.png")
