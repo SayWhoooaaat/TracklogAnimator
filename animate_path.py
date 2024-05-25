@@ -21,6 +21,7 @@ def get_ruler_km(map_km):
 
 
 def animate_path(track_points, map_images, map_metadata, outline_image, fps, overlay_width, total_height, transparent):
+    res_scale = total_height / 1080
     path_linewidth = 1
     arrow = [(-8,-6), (8,0), (-8,6)]
     vertical_arrow = [(-1,-3), (1,-3), (1,0), (2,0), (0,3), (-2,0), (-1,0)]

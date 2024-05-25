@@ -141,9 +141,11 @@ def get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max):
     img.save("media/country_outline.png")
     return (img, adjusted_bbox.bounds, height)
 
-def get_outline(track_points, width, anim_height):
-    height_max = anim_height * 0.85 - width
-    width = round(width * 0.5) # scaling down outline image
+def get_outline(track_points, anim_width, anim_height):
+    height_max = anim_height * 0.85 - anim_width
+    #width = round(width * 0.5) # scaling down outline image
+    width = 190 # good linewidth/size ratio
+    scale = anim_width / width / 2
 
     # Simplify tracklog
     timeinterval = 120
@@ -248,6 +250,10 @@ def get_outline(track_points, width, anim_height):
     
     print("Generating country outline...")
     outline_image, bounding_coords, height = get_borders(lat_min, lat_max, lon_min, lon_max, width, height_max)
+    width = round(outline_image.size[0] * scale)
+    height = round(outline_image.size[1] * scale)
+    new_size = (width, height)
+    outline_image = outline_image.resize(new_size, Image.Resampling.LANCZOS)
     lon_min, lat_min, lon_max, lat_max = bounding_coords
     print("Saved country map")
     

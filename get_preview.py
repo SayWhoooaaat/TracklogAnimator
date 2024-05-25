@@ -24,7 +24,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
 
     scale = anim_height / 1080
     m_px = map_metadata[0][6]
-    arrow = [(-8,-6), (8,0), (-8,6)]
+    arrow = [(-8*scale,-6*scale), (8*scale,0), (-8*scale,6*scale)]
 
     height, width = overlay_width, overlay_width
 
@@ -32,7 +32,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     ruler_km = get_ruler_km(width * m_px / 1000)
     ruler_pixels = ruler_km * 1000 / m_px
     ruler_text = f"{ruler_km} km"
-    textsize = 14
+    textsize = round(14 * scale)
     font = ImageFont.truetype("arial.ttf", textsize)
 
     path_image = map_images[0].copy()
@@ -46,7 +46,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
         
         # Draws path on image with only path
         if i > 0:
-            draw.line((last_x, last_y, x, y), fill='red', width=1)
+            draw.line((last_x, last_y, x, y), fill='red', width=round(scale))
         last_x, last_y = x, y
 
     # Draws arrow at the end of path (but doesnt mess with path_image)
@@ -61,11 +61,11 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     
     # Draw ruler on cropped image
     draw3 = ImageDraw.Draw(cropped_image)
-    draw3.line((width-8, height-14, width-8, height-8), fill='white', width=1)
-    draw3.line((width-8, height-8, width-8-ruler_pixels, height-8), fill='white', width=1)
-    draw3.line((width-8-ruler_pixels, height-8, width-8-ruler_pixels, height-14), fill='white', width=1)
+    draw3.line((width-8*scale, height-14*scale, width-8*scale, height-8*scale), fill='white', width=round(scale))
+    draw3.line((width-8*scale, height-8*scale, width-8*scale-ruler_pixels, height-8*scale), fill='white', width=round(scale))
+    draw3.line((width-8*scale-ruler_pixels, height-8*scale, width-8*scale-ruler_pixels, height-14*scale), fill='white', width=round(scale))
     text_width = draw3.textlength(ruler_text, font=font)
-    draw3.text((width-18-ruler_pixels-text_width, height-8-textsize), ruler_text, fill="white", font=font)
+    draw3.text((width-18*scale-ruler_pixels-text_width, height-8*scale-textsize), ruler_text, fill="white", font=font)
 
     cropped_image.save('media/preview_minimap.png')
 
@@ -78,13 +78,13 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,50), width=1)
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,50), width=round(scale))
         last_x_outline, last_y_outline = x_outline, y_outline
     
     # Draws arrow at the end of path (but doesnt mess with path_image)
     outline_with_dot = outline_image.copy()
     draw5 = ImageDraw.Draw(outline_with_dot)
-    draw5.ellipse([x_outline - 2, y_outline - 2, x_outline + 2, y_outline + 2], fill='red')
+    draw5.ellipse([x_outline - round(2*scale), y_outline - round(2*scale), x_outline + round(2*scale), y_outline + round(2*scale)], fill='red')
     outline_with_dot.save('media/preview_outline.png')
 
     # Now put all images together
