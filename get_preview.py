@@ -121,7 +121,11 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     # Draw altibar
     max_altitude = max(point["altitude"] for point in track_points)
     altibar_height = round(280 * scale)
-    altibar_image = make_altibar_frame(width, altibar_height, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr)
+    if i == 0 or i == len(track_points)-1:
+        elevation_active = False
+    else:
+        elevation_active = True
+    altibar_image = make_altibar_frame(width, altibar_height, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr, elevation_active)
     altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
     base_image.paste(altibar_image, (0,altibar_y), altibar_image)
 

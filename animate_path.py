@@ -139,7 +139,12 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         image_with_arrow = path_image[map_number].copy()
         draw2 = ImageDraw.Draw(image_with_arrow)
         angled_arrow = [(x_pixel[map_number] + px * math.cos(phi) - py * math.sin(phi), y_pixel[map_number] + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
-        draw2.polygon(angled_arrow, fill='red', outline ='black')
+        if i == 0 or i == len(track_points)-1:
+            dot_radius = 6*res_scale
+            pilot_dot = [x_pixel[map_number]-dot_radius, y_pixel[map_number]-dot_radius, x_pixel[map_number]+dot_radius, y_pixel[map_number]+dot_radius]
+            draw2.ellipse(pilot_dot, fill='red', outline ='black')
+        else:
+            draw2.polygon(angled_arrow, fill='red', outline ='black')
 
         # Crop and scale
         temp_width = width * 2**track_points[i]["zoom_level"] / 2**map_number
@@ -171,10 +176,10 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         if i > 0:
             draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=round(res_scale))
         last_x_outline, last_y_outline = x_outline, y_outline
-        # Draws arrow at the end of path (but doesnt mess with path_image)
+        # Draws dot at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
         draw5 = ImageDraw.Draw(outline_with_dot)
-        draw5.ellipse([x_outline - 2*res_scale, y_outline - 2*res_scale, x_outline + 2*res_scale, y_outline + 2*res_scale], fill='red')
+        draw5.ellipse([x_outline - 2*res_scale, y_outline - 2*res_scale, x_outline + 2*res_scale, y_outline + 2*res_scale], fill='red', outline ='black')
 
         # STEP 3: PUT IMAGES TOGETHER
         animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
@@ -209,7 +214,11 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         # Draw altibar
         max_altitude = max(point["altitude"] for point in track_points)
         altibar_height = round(280 * res_scale)
-        altibar_image = make_altibar_frame(width, altibar_height, res_scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr)
+        if i == 0 or i == len(track_points)-1:
+            elevation_active = False
+        else:
+            elevation_active = True
+        altibar_image = make_altibar_frame(width, altibar_height, res_scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr, elevation_active)
         altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
         animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
 
@@ -232,6 +241,11 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             print(f"Progress: {round(i/len(track_points)*100)}%, {round(time_left/60)} min remaining...")
         if i == round(len(track_points)/3):
             animation_frame.save('media/frame_example.png')
+        elif i == 0:
+            animation_frame.save('media/frame_first.png')
+        elif i == len(track_points)-1:
+            animation_frame.save('media/frame_last.png')
+    
 
     # Use FFmpeg to compile PNGs into a video with ProRes 4444 codec
     print("Stitching frames to video...")
@@ -292,11 +306,10 @@ if __name__ == "__main__":
                             # If it's not JSON, leave it as the original string
                             pass
             track_points.append(row)
-    #print(track_points[30])
+    
 
     # Read maps
     no_map_images = len(track_points[0]["map_coordinate"])
-    print(no_map_images)
     map_images = []
     for i in range(no_map_images):
         map_image = Image.open(f"media/map_stitched{i}.png").convert("RGB")

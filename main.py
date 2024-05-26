@@ -1,7 +1,7 @@
 
 track_file = "tracklogs/loen.gpx"
 speedup = 60 # Should be 24
-fps = 30 # Should be 59.94
+fps = 59.94 # Should be 59.94
 anim_height = 1080
 overlay_width_percentage = 14 # should be 14
 minimap_km = 4 # Should be 4-6
