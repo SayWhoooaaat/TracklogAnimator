@@ -40,6 +40,16 @@ def get_bounding_coordinates(coords):
     # Combine the polygons into one
     combined_polygon = unary_union([decomposed_gdf.loc[index, 'geometry'] for index in joined.index_right.unique()])
 
+    # Check for mainland Norway exception
+    if 'Norway' in country_dict:
+        print("Inside Norway")
+        lat_min = min(coords, key=lambda x: x[0])[0]
+        lat_max = max(coords, key=lambda x: x[0])[0]
+        if lat_min >= 57.9 and lat_max <= 63.9:
+            print("Southern Norway")
+            norway_bbox = (4.5, 57.9, 14.2, 64)
+            return norway_bbox, country_dict
+    
     return combined_polygon.bounds, country_dict
 
 
