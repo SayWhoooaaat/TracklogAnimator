@@ -18,8 +18,8 @@ def make_altibar_frame(w, h, scale, altitude, elevation, vario, vario_lr, max_al
     altibar_ground = elevation / bar_max * bar_height
 
     # Draw bar
-    draw.rectangle([bar_x, bar_y, bar_x + bar_width, bar_y + bar_height], fill=(240, 240, 240, 100), outline ='black', width=round(2*scale))
-    draw.rectangle([bar_x, bar_y + bar_height - altibar_ground, bar_x + bar_width, bar_y + bar_height], fill=(200, 255, 200, 60), outline ='black', width=round(2*scale))
+    draw.rectangle([bar_x, bar_y, bar_x + bar_width, bar_y + bar_height], fill=(240, 240, 240, 180), outline ='black', width=round(2*scale))
+    draw.rectangle([bar_x, bar_y + bar_height - altibar_ground, bar_x + bar_width, bar_y + bar_height], fill=(200, 255, 200, 120), outline ='black', width=round(2*scale))
     
     # Draw arrow
     arrow = [(-1,0), (1,0), (1,3), (2,3), (0,6), (-2,3), (-1,3)]

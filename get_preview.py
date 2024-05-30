@@ -53,7 +53,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     image_with_arrow = path_image.copy()
     draw2 = ImageDraw.Draw(image_with_arrow)
     angled_arrow = [(x + px * math.cos(phi) - py * math.sin(phi), y + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
-    draw2.polygon(angled_arrow, fill='red', outline ='black')
+    draw2.polygon(angled_arrow, fill='red', outline ='black', width = round(2*scale))
 
     # Crop out desired frame
     xc, yc = x, y
@@ -84,19 +84,18 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     # Draws arrow at the end of path (but doesnt mess with path_image)
     outline_with_dot = outline_image.copy()
     draw5 = ImageDraw.Draw(outline_with_dot)
-    draw5.ellipse([x_outline - round(2*scale), y_outline - round(2*scale), x_outline + round(2*scale), y_outline + round(2*scale)], fill='red')
+    draw5.ellipse([x_outline - 3*scale, y_outline - 3*scale, x_outline + 3*scale, y_outline + 3*scale], fill='red', outline='black')
     outline_with_dot.save('media/preview_outline.png')
 
     # Now put all images together
-    base_image = Image.open("media/preview_background.png").convert("RGBA")
-    base_image = base_image.resize((round(anim_height / 9 * 16), anim_height))
+    animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
     cropped_image = cropped_image.convert("RGBA")
 
-    position_minimap = (0, base_image.size[1] - cropped_image.size[1])
+    position_minimap = (0, anim_height - cropped_image.size[1])
     position_outline = (round(10*scale), round(anim_height*0.1))
 
-    base_image.paste(cropped_image, position_minimap, cropped_image)
-    base_image.paste(outline_with_dot, position_outline, outline_with_dot)
+    animation_frame.paste(cropped_image, position_minimap, cropped_image)
+    animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
     # Extract data
     localtime = track_points[i]["local_time"]
@@ -114,7 +113,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     current_time = localtime.strftime("%H:%M")
     current_date = localtime.strftime("%Y-%m-%d")
 
-    draw6 = ImageDraw.Draw(base_image)
+    draw6 = ImageDraw.Draw(animation_frame)
     draw6.text((30*scale,30*scale), current_time, font=ImageFont.truetype("arial.ttf", round(40*scale)), fill='white')
     draw6.text((38*scale,76*scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*scale)), fill='white')
     
@@ -127,7 +126,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
         elevation_active = True
     altibar_image = make_altibar_frame(width, altibar_height, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr, elevation_active)
     altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
-    base_image.paste(altibar_image, (0,altibar_y), altibar_image)
+    animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
 
     # Draw goal
     textsize = round(18*scale)
@@ -139,7 +138,10 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     
     draw6.text((8*scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
     
-
+    # Paste animation frame as an overlay
+    base_image = Image.open("media/preview_background.png").convert("RGBA")
+    base_image = base_image.resize((round(anim_height / 9 * 16), anim_height))
+    base_image.paste(animation_frame, (0,0), animation_frame)
     base_image.save("media/preview.png")
     print("Preview saved.")
 

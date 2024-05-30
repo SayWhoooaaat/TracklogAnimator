@@ -144,7 +144,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
             pilot_dot = [x_pixel[map_number]-dot_radius, y_pixel[map_number]-dot_radius, x_pixel[map_number]+dot_radius, y_pixel[map_number]+dot_radius]
             draw2.ellipse(pilot_dot, fill='red', outline ='black')
         else:
-            draw2.polygon(angled_arrow, fill='red', outline ='black')
+            draw2.polygon(angled_arrow, fill='red', outline ='black', width = round(2*res_scale))
 
         # Crop and scale
         temp_width = width * 2**track_points[i]["zoom_level"] / 2**map_number
@@ -179,7 +179,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
         # Draws dot at the end of path (but doesnt mess with path_image)
         outline_with_dot = outline_image.copy()
         draw5 = ImageDraw.Draw(outline_with_dot)
-        draw5.ellipse([x_outline - 2*res_scale, y_outline - 2*res_scale, x_outline + 2*res_scale, y_outline + 2*res_scale], fill='red', outline ='black')
+        draw5.ellipse([x_outline - 3*res_scale, y_outline - 3*res_scale, x_outline + 3*res_scale, y_outline + 3*res_scale], fill='red', outline ='black')
 
         # STEP 3: PUT IMAGES TOGETHER
         animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))

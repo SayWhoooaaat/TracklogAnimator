@@ -4,8 +4,8 @@ speedup = 60 # Should be 24
 fps = 59.94 # Should be 59.94
 anim_height = 1080
 overlay_width_percentage = 14 # should be 14
-minimap_km = 4 # Should be 4-6
-map_scale = 1.25
+minimap_km = 4 # Should be 16? (before i liked 4)
+map_scale = 1.0
 transparent = False # Should be True
 challenge = 1 # 1 = distance, 2 = out and return, 3 = circle, 4 = spot landing
 pb = 9 # km, km, km^2
