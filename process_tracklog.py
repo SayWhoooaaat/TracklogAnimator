@@ -5,6 +5,7 @@ from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 
 from processing_utils import get_elevation_from_cache
+from processing_utils import collect_3tp_distances
 from processing_utils import parse_gpx, parse_igc, parse_tcx
 from processing_utils import smooth_data, smooth_angles
 
@@ -139,6 +140,11 @@ def process_tracklog(file_path, dt, speedup):
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
     
+    # Find 3pt distances
+    track_points = collect_3tp_distances(track_points, dt)
+    print(track_points[-3]["3tp_dist"])
+    print(track_points[-1]["3tp_dist"])
+
     # Smooth vario and direction
     smoothing_time_vario = 20
     smoothing_time_phi = 10

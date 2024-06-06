@@ -1,5 +1,5 @@
 
-track_file = "tracklogs/jama.igc"
+track_file = "tracklogs/loen_trekant.igc"
 speedup = 60 # Should be 24
 fps = 59.94 # Should be 59.94
 anim_height = 1080
