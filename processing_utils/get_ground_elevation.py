@@ -4,7 +4,7 @@ import json
 import os
 import time
 
-def get_ground_elevation(locations):
+def get_ground_elevation_from_api(locations):
     url = "https://api.opentopodata.org/v1/aster30m"
     # Joining locations as a pipe-separated string of lat,lon pairs
     locations_param = '|'.join([f"{lat},{lon}" for lat, lon in locations])
@@ -20,7 +20,7 @@ def get_ground_elevation(locations):
         return []
 
 
-def get_elevation_from_cache(coordinates, precision_lat=0.01, precision_lon=0.01):
+def get_ground_elevation(coordinates, precision_lat=0.01, precision_lon=0.01):
     filename = 'elevation_cache.json'
     # Check if json exists
     if os.path.exists(filename):
@@ -56,7 +56,7 @@ def get_elevation_from_cache(coordinates, precision_lat=0.01, precision_lon=0.01
     elevations = []
     for i in range(0, len(coordinate_list_api), batch_size):
         batch = coordinate_list_api[i:i+batch_size]
-        elevations.extend(get_ground_elevation(batch))
+        elevations.extend(get_ground_elevation_from_api(batch))
         time.sleep(1)  # Respect the 1 call per second limit
     
     # Store new elevations in json

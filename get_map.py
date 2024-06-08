@@ -72,11 +72,11 @@ def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
     n = 40075.0 / anim_km * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
     zoom_max = round(math.log2(n))
     n = 2 ** zoom_max
-    anim_km_actual = 40075.0 / n * anim_pixels / cell_size * math.cos((lat_max+lat_min)/2*math.pi/180)
 
     # Calculate min zoom
     n2 = anim_pixels / cell_size * 360 / max(lon_max - lon_min, (lat_max - lat_min) / math.cos((lat_max+lat_min)/2*math.pi/180))
     zoom_min = int(math.log2(n2))
+    zoom_min = min(zoom_min, zoom_max)
     print(lat_min, lat_max, lon_min, lon_max, n2)
     print(f"zoom_max = {zoom_max}, zoom_min = {zoom_min}")
 

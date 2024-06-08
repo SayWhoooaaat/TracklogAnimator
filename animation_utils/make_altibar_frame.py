@@ -35,7 +35,7 @@ def make_altibar_frame(w, h, scale, altitude, elevation, vario, vario_lr, max_al
     arrow_x = bar_x + bar_width/2
     arrow_y = bar_y + bar_height - altibar_pilot
     scaled_arrow = [(arrow_x + px * arrow_width, arrow_y + py * arrow_height) for px, py in arrow]
-    draw.polygon(scaled_arrow, fill=(255, 40, 40, 200), outline ='black', width=round(2*scale))
+    draw.polygon(scaled_arrow, fill=(255, 40, 40, 220), outline ='black', width=round(2*scale))
 
     # Draw pilot bar
     draw.rectangle([bar_x, bar_y + bar_height - altibar_pilot - 3*scale, bar_x + bar_width, bar_y + bar_height - altibar_pilot + 3*scale], fill="red", outline ='black', width=round(2*scale))

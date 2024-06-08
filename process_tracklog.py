@@ -4,8 +4,8 @@ from datetime import timedelta
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 
-from processing_utils import get_elevation_from_cache
-from processing_utils import collect_3tp_distances
+from processing_utils import get_ground_elevation
+from processing_utils import collect_3tp_distances, collect_open_distances
 from processing_utils import parse_gpx, parse_igc, parse_tcx
 from processing_utils import smooth_data, smooth_angles
 
@@ -142,8 +142,9 @@ def process_tracklog(file_path, dt, speedup):
     
     # Find 3pt distances
     track_points = collect_3tp_distances(track_points, dt)
-    print(track_points[-3]["3tp_dist"])
-    print(track_points[-1]["3tp_dist"])
+
+    # Find open distances
+    track_points = collect_open_distances(track_points, dt)
 
     # Smooth vario and direction
     smoothing_time_vario = 20
@@ -173,7 +174,7 @@ def process_tracklog(file_path, dt, speedup):
         lat = point["lat"]
         lon = point["lon"]
         coordinates.append([lat, lon])
-    ground_heights = get_elevation_from_cache(coordinates, resolution_lat, resolution_lon)
+    ground_heights = get_ground_elevation(coordinates, resolution_lat, resolution_lon)
     for i, point in enumerate(track_points):
         track_points[i]["elevation"] = max(ground_heights[i], 0)
 

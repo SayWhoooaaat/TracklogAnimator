@@ -19,7 +19,7 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width, anim_height, challenge, pb):
+def get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width, anim_height, goal_type, goal_text_reference):
     print("Making preview image...")
 
     scale = anim_height / 1080
@@ -78,7 +78,7 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,50), width=round(scale))
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=round(scale))
         last_x_outline, last_y_outline = x_outline, y_outline
     
     # Draws arrow at the end of path (but doesnt mess with path_image)
@@ -108,6 +108,8 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     elevation_lr = track_points[i]["elevation_lr"]
     vario_lr = track_points[i]["vario_lr"]
     sl_distance = track_points[i]["sl_distance"]
+    open_distance = track_points[i]["open_dist"]
+    distance_3tp = track_points[i]["3tp_dist"]
 
     # Draw datetime
     current_time = localtime.strftime("%H:%M")
@@ -131,10 +133,10 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     # Draw goal
     textsize = round(18*scale)
     font = ImageFont.truetype("arial.ttf", textsize)
-    if challenge == 1: # Straight line distance
-        goal_text = f"Distance from start: {round(sl_distance/1000)} km\nPB: {round(pb)} km"
-    elif challenge == 2: # Out and return
-        goal_text = f"Out and return\nNot yet programmed."
+    if goal_type == '3tp_distance': # 3tp-distance
+        goal_text = f"Distance (3tp): {round(distance_3tp/1000)} km\n{goal_text_reference}"
+    elif goal_type == 'open_distance': # open distance
+        goal_text = f"Open distance: {round(open_distance/1000)} km\n{goal_text_reference}"
     
     draw6.text((8*scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
     
@@ -186,13 +188,13 @@ if __name__ == "__main__":
 
     overlay_width = 250
     anim_height = 1080
-    challenge = 1
-    pb = 9
+    goal_type = '3tp_distance'
+    goal_text_reference = 'PB: 22 km'
 
     map_metadata = []
     map_metadata.append([0, 0, 0, 0, 0, 0, 16])
 
-    get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width, anim_height, challenge, pb)
+    get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width, anim_height, goal_type, goal_text_reference)
 
 
 

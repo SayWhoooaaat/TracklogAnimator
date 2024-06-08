@@ -69,9 +69,16 @@ def collect_3tp_distances(track_points, dt):
     lon_lat_points = [(point['lon'], point['lat']) for point in track_points]
 
     # Reducing number of points
-    course_dt = 10
+    max_res = 1500
+    course_dt = 10 # seconds
     step_size = int(course_dt / dt)
     course_coords = lon_lat_points[::step_size]
+    if len(course_coords) > max_res:
+        total_time = track_points[-1]['timestamp'] - track_points[0]['timestamp']
+        course_dt = total_time.total_seconds() / max_res
+        step_size = int(course_dt / dt)
+        #print(total_time.total_seconds(), dt, course_dt, step_size)
+        course_coords = lon_lat_points[::step_size]
 
     # Precomputing 3tp distances
     print('reduced from ',len(lon_lat_points), ' to ',len(course_coords)," trackpoints. Precomputing...")
@@ -84,7 +91,7 @@ def collect_3tp_distances(track_points, dt):
     distances_3tp = []
     indices_3tp = []
     time_est = len(course_coords) ** 3 / calc_step_size / 2 / 10**8
-    print('estimated time: ', int(time_est), ' minutes')
+    print('estimated time: ', round(time_est,1), ' minutes')
     for end_idx in range(4, len(course_coords), calc_step_size): # Index relative to course_coords
         distance_3tp, selected_points, selected_indexes = compute_3tp_distance(course_coords, dist_matrix, end_idx)
         distances_3tp.append(distance_3tp)
@@ -103,16 +110,26 @@ def collect_3tp_distances(track_points, dt):
     
     # Now calculate the last point exactly
     print('Computing 3tp-distance precisely...')
-    time_est = len(lon_lat_points) ** 2 / 10**8 * 1.9
-    print('estimated time: ', int(time_est), ' minutes.')
-    dist_matrix = precompute_distances(lon_lat_points)
-    time_est = len(lon_lat_points) ** 2 / 10**8 * 1.2
-    print('estimating ', int(time_est), ' minutes remaining...')
-    distance_3tp, selected_points, selected_indexes = compute_3tp_distance(lon_lat_points, dist_matrix, len(lon_lat_points)-1)
+    max_res = 8000
+    if len(lon_lat_points) < max_res:
+        time_est = len(lon_lat_points) ** 2 / 10**8 * 1.9
+        print('estimated time: ', round(time_est,1), ' minutes.')
+        dist_matrix = precompute_distances(lon_lat_points)
+        distance_3tp, selected_points, selected_indexes = compute_3tp_distance(lon_lat_points, dist_matrix, len(lon_lat_points)-1)
+    else:
+        course_dt = total_time.total_seconds() / max_res
+        print('Too long tracklog, increasing dt to ', round(course_dt,1))
+        step_size = int(course_dt / dt)
+        course_coords = lon_lat_points[::step_size]
+        if lon_lat_points[-1] not in course_coords:
+            course_coords.append(lon_lat_points[-1])
+        time_est = len(course_coords) ** 2 / 10**8 * 1.9
+        print('estimated time: ', round(time_est,1), ' minutes.')
+        dist_matrix = precompute_distances(course_coords)
+        distance_3tp, selected_points, selected_indexes = compute_3tp_distance(course_coords, dist_matrix, len(course_coords)-1)
     track_points[-1]["3tp_dist"] = int(distance_3tp)
     track_points[-2]["3tp_dist"] = int(distance_3tp) # Redundancy
-
-
+    
     return track_points
 
 
