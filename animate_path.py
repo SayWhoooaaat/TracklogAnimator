@@ -26,9 +26,6 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, ove
     res_scale = anim_height / 1080
     path_linewidth = round(res_scale)
     arrow = [(-8*res_scale,-6*res_scale), (8*res_scale,0), (-8*res_scale,6*res_scale)]
-    vertical_arrow = [(-1,-3), (1,-3), (1,0), (2,0), (0,3), (-2,0), (-1,0)]
-    horizontal_arrow = [(-3,-1), (-3,1), (0,1), (0,2), (3,0), (0,-2), (0,-1)]
-    horizontal_arrow = [(160 + px*3, 762 + py*3) for px, py in horizontal_arrow]
 
     temp_folder = 'temp_frames'
     os.makedirs(temp_folder, exist_ok=True)
