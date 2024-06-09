@@ -5,6 +5,8 @@ import csv
 import json
 from datetime import datetime
 from animation_utils import make_altibar_frame
+from animation_utils import initialize_minimap
+from animation_utils import make_minimap_frame
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -19,82 +21,50 @@ def get_ruler_km(map_km):
     return ruler_km
 
 
-def get_preview(track_points, map_images, map_metadata, outline_image_static, overlay_width, anim_height, goal_type, goal_text_reference):
+def get_preview(track_points, map_images, map_metadata, outline_image_static, width, anim_height, goal_type, goal_text_reference):
     print("Making preview image...")
+    animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
+    res_scale = anim_height / 1080
 
-    scale = anim_height / 1080
+    # STEP 1: MINI-MAP
+    no_maps = len(map_images)
+    no_points =len(track_points)
     m_px = map_metadata[0][6]
-    arrow = [(-8*scale,-6*scale), (8*scale,0), (-8*scale,6*scale)]
+    path_images = [img.copy() for img in map_images]
+    frame_memory = initialize_minimap(track_points[0], no_maps, res_scale, width)
 
-    height, width = overlay_width, overlay_width
+    endpoint = int(no_points/3*2)
+    endpoint = min(endpoint, no_points)
+    step_size = int(endpoint/100) # reduce to 100 calculation points
 
-    # Makes and scales ruler
-    ruler_km = get_ruler_km(width * m_px / 1000)
-    ruler_pixels = ruler_km * 1000 / m_px
-    ruler_text = f"{ruler_km} km"
-    textsize = round(14 * scale)
-    font = ImageFont.truetype("arial.ttf", textsize)
+    for i in range(0, endpoint, step_size):
+        track_point = track_points[i]
+        if i == 0:
+            track_point_prev = track_point
+        # Get minimap frame
+        minimap_frame, path_images, frame_memory = make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, m_px, no_maps, res_scale, width)
+        track_point_prev = track_point
 
-    path_image = map_images[0].copy()
-    draw = ImageDraw.Draw(path_image)
-
-    endpoint = round(len(track_points)*1/4)
-    for i in range(0, endpoint):
-        x = track_points[i]["map_coordinate"][0]["x"]
-        y = track_points[i]["map_coordinate"][0]["y"]
-        phi = track_points[i]["direction"]
-        
-        # Draws path on image with only path
-        if i > 0:
-            draw.line((last_x, last_y, x, y), fill='red', width=round(scale))
-        last_x, last_y = x, y
-
-    # Draws arrow at the end of path (but doesnt mess with path_image)
-    image_with_arrow = path_image.copy()
-    draw2 = ImageDraw.Draw(image_with_arrow)
-    angled_arrow = [(x + px * math.cos(phi) - py * math.sin(phi), y + px * math.sin(phi) + py * math.cos(phi)) for px, py in arrow]
-    draw2.polygon(angled_arrow, fill='red', outline ='black', width = round(2*scale))
-
-    # Crop out desired frame
-    xc, yc = x, y
-    cropped_image = image_with_arrow.crop((xc - width/2.0, yc - height/2.0, xc + width/2.0, yc + height/2.0))
-    
-    # Draw ruler on cropped image
-    draw3 = ImageDraw.Draw(cropped_image)
-    draw3.line((width-8*scale, height-14*scale, width-8*scale, height-8*scale), fill='white', width=round(scale))
-    draw3.line((width-8*scale, height-8*scale, width-8*scale-ruler_pixels, height-8*scale), fill='white', width=round(scale))
-    draw3.line((width-8*scale-ruler_pixels, height-8*scale, width-8*scale-ruler_pixels, height-14*scale), fill='white', width=round(scale))
-    text_width = draw3.textlength(ruler_text, font=font)
-    draw3.text((width-18*scale-ruler_pixels-text_width, height-8*scale-textsize), ruler_text, fill="white", font=font)
-
-    cropped_image.save('media/preview_minimap.png')
+    position_minimap = (0, animation_frame.size[1] - minimap_frame.size[1])
+    animation_frame.paste(minimap_frame, position_minimap, minimap_frame)
 
     # STEP 2: MAKE OUTLINE-MAP FRAME
     outline_image = outline_image_static.copy()
-    for i in range(0, endpoint):
+    for i in range(0, endpoint, step_size):
         x_outline = track_points[i]["outline_x"]
         y_outline = track_points[i]["outline_y"]
-
         # Draws path on image with only path
         draw4 = ImageDraw.Draw(outline_image)
         if i > 0:
-            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=round(scale))
+            draw4.line((last_x_outline, last_y_outline, x_outline, y_outline), fill=(255,0,0,200), width=round(res_scale))
         last_x_outline, last_y_outline = x_outline, y_outline
-    
-    # Draws arrow at the end of path (but doesnt mess with path_image)
+    # Draws arrow at the end of path (but doesnt mess with outline_image)
     outline_with_dot = outline_image.copy()
     draw5 = ImageDraw.Draw(outline_with_dot)
-    draw5.ellipse([x_outline - 3*scale, y_outline - 3*scale, x_outline + 3*scale, y_outline + 3*scale], fill='red', outline='black')
+    draw5.ellipse([x_outline - 3*res_scale, y_outline - 3*res_scale, x_outline + 3*res_scale, y_outline + 3*res_scale], fill='red', outline='black')
     outline_with_dot.save('media/preview_outline.png')
 
-    # Now put all images together
-    animation_frame = Image.new("RGBA", (width, anim_height), (0, 0, 0, 0))
-    cropped_image = cropped_image.convert("RGBA")
-
-    position_minimap = (0, anim_height - cropped_image.size[1])
-    position_outline = (round(10*scale), round(anim_height*0.1))
-
-    animation_frame.paste(cropped_image, position_minimap, cropped_image)
+    position_outline = (round(10*res_scale), round(anim_height*0.1))
     animation_frame.paste(outline_with_dot, position_outline, outline_with_dot)
 
     # Extract data
@@ -116,29 +86,29 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, ov
     current_date = localtime.strftime("%Y-%m-%d")
 
     draw6 = ImageDraw.Draw(animation_frame)
-    draw6.text((30*scale,30*scale), current_time, font=ImageFont.truetype("arial.ttf", round(40*scale)), fill='white')
-    draw6.text((38*scale,76*scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*scale)), fill='white')
+    draw6.text((30*res_scale,30*res_scale), current_time, font=ImageFont.truetype("arial.ttf", round(40*res_scale)), fill='white')
+    draw6.text((38*res_scale,76*res_scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*res_scale)), fill='white')
     
     # Draw altibar
     max_altitude = max(point["altitude"] for point in track_points)
-    altibar_height = round(280 * scale)
+    altibar_height = round(280 * res_scale)
     if i == 0 or i == len(track_points)-1:
         elevation_active = False
     else:
         elevation_active = True
-    altibar_image = make_altibar_frame(width, altibar_height, scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr, elevation_active)
+    altibar_image = make_altibar_frame(width, altibar_height, res_scale, altitude, elevation, vario, vario_lr, max_altitude, altitude_lr, elevation_lr, elevation_active)
     altibar_y = position_minimap[1] - altibar_height - round(anim_height*0.05)
     animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
 
     # Draw goal
-    textsize = round(18*scale)
+    textsize = round(18*res_scale)
     font = ImageFont.truetype("arial.ttf", textsize)
     if goal_type == '3tp_distance': # 3tp-distance
         goal_text = f"Distance (3tp): {round(distance_3tp/1000)} km\n{goal_text_reference}"
     elif goal_type == 'open_distance': # open distance
         goal_text = f"Open distance: {round(open_distance/1000)} km\n{goal_text_reference}"
     
-    draw6.text((8*scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
+    draw6.text((8*res_scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
     
     # Paste animation frame as an overlay
     base_image = Image.open("media/preview_background.png").convert("RGBA")
@@ -177,12 +147,13 @@ if __name__ == "__main__":
                             # If it's not JSON, leave it as the original string
                             pass
             track_points.append(row)
-    #print(track_points[30])
 
     # Read maps
-    map_image = Image.open("media/map_stitched0.png").convert("RGB")
+    no_map_images = len(track_points[0]["map_coordinate"])
     map_images = []
-    map_images.append(map_image)
+    for i in range(no_map_images):
+        map_image = Image.open(f"media/map_stitched{i}.png").convert("RGB")
+        map_images.append(map_image) 
 
     outline_image_static = Image.open("media/country_outline.png").convert("RGBA")
 

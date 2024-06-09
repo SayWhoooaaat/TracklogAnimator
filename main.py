@@ -1,14 +1,14 @@
 
-track_file = "tracklogs/loen.gpx"
+track_file = "tracklogs/jama.igc"
 speedup = 60 # Should be 24
 fps = 30 # Should be 59.94
 anim_height = 1080
-overlay_width_percentage = 14 # should be 14
-minimap_km = 8 # Should be 16? (before i liked 4)
+overlay_width_percentage = 14 # Should be 14
+minimap_km = 4 # Should be 16? (before i liked 4)
 map_scale = 1.0
 transparent = False # Should be True
-goal_type = '3tp_distance' # open_distace, 3tp_distance
-goal_text_refefrence = 'PB: 22 km'
+goal_type = 'open_distance' # open_distace, 3tp_distance
+goal_text_refefrence = 'PB: 9 km'
 
 
 overlay_width = round(anim_height / 9 * 16 * overlay_width_percentage / 100)

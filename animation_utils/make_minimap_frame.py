@@ -21,7 +21,7 @@ def get_ruler_km(map_km):
         ruler_km = basis
     return ruler_km
 
-def initialize_path_image(track_point, no_maps, res_scale, width):
+def initialize_minimap(track_point, no_maps, res_scale, width):
     # Initializes positions and mini-map images
     center_pilot_x = []
     center_pilot_y = []
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     # Initiallize
     no_points = len(track_points)
     path_images = map_images
-    frame_memory = initialize_path_image(track_points[0], no_maps, res_scale, width)
+    frame_memory = initialize_minimap(track_points[0], no_maps, res_scale, width)
 
     i_max = 1000
 
