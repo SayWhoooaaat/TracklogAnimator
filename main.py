@@ -7,8 +7,9 @@ overlay_width_percentage = 14 # Should be 14
 minimap_km = 4 # Should be 16? (before i liked 4)
 map_scale = 1.0
 transparent = False # Should be True
-goal_type = 'open_distance' # open_distace, 3tp_distance
+goal_type = 'open_distance' # open_distace, 3tp_distance, declared
 goal_text_refefrence = 'PB: 9 km'
+target_coords = None # None, [28.101484, -16.750003]
 
 
 overlay_width = round(anim_height / 9 * 16 * overlay_width_percentage / 100)
@@ -17,10 +18,10 @@ dt = speedup / fps
 
 
 from process_tracklog import process_tracklog
-track_points, track_metadata = process_tracklog(track_file, dt, speedup)
+track_points, track_metadata = process_tracklog(track_file, dt, speedup, target_coords)
 
 from get_map import get_map
-minimap_images, map_metadata = get_map(track_metadata, minimap_width, overlay_width, minimap_km, track_points)
+minimap_images, map_metadata = get_map(track_metadata, minimap_width, overlay_width, minimap_km, track_points, target_coords)
 
 from get_outline import get_outline
 outline_image, outline_metadata = get_outline(track_points, overlay_width, anim_height)

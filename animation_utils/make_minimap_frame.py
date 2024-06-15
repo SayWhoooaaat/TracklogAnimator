@@ -47,6 +47,9 @@ def initialize_minimap(track_point, no_maps, res_scale, width):
     center_factor = 0.3
     center_radius = center_factor / 2 * width
 
+    target_arrow_base = [(-1,6), (1,6), (1,3), (2,3), (0,0), (-2,3), (-1,3)]
+    target_arrow_base = [(px*7, -width*0.49 + py*4) for px, py in target_arrow_base]
+
     frame_memory = {
     'center_pilot_x': center_pilot_x,
     'center_pilot_y': center_pilot_y,
@@ -57,13 +60,14 @@ def initialize_minimap(track_point, no_maps, res_scale, width):
     'y_pixels_min': y_pixels_min,
     'y_pixels_max': y_pixels_max,
     'arrow': arrow,
-    'center_radius': center_radius
+    'center_radius': center_radius,
+    'target_arrow_base': target_arrow_base
 }
     return frame_memory
 
 
 
-def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, m_px, no_maps, res_scale, width):
+def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, map_metadata, res_scale, width):
     # Unpack memory dictionary
     center_pilot_x = frame_memory['center_pilot_x']
     center_pilot_y = frame_memory['center_pilot_y']
@@ -75,10 +79,13 @@ def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, tra
     y_pixels_max = frame_memory['y_pixels_max']
     arrow = frame_memory['arrow']
     center_radius = frame_memory['center_radius']
-    
+    target_arrow_base = frame_memory['target_arrow_base']
+
     phi = track_point["direction"]
     height = width
     path_linewidth = round(res_scale)
+    m_px = map_metadata[0][6]
+    no_maps = len(map_metadata)
 
     # Initializes path drawing for all maps
     draw = []
@@ -177,9 +184,30 @@ def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, tra
     text_height = bbox[3] - bbox[1]
     draw3.text((width-18*res_scale-ruler_pixels-text_width, height-8*res_scale-text_height), ruler_text, fill="white", font=font)
 
+
+    # Draw target if applicable
+    x_target = map_metadata[map_number][7]
+    y_target = map_metadata[map_number][8]
+    if x_target != None:
+        x_target_dist = x_target - center_frame_x[map_number]
+        y_target_dist = -y_target + center_frame_y[map_number]
+        if x_target_dist**2 + y_target_dist**2 > (width*0.6)**2: # Far away from target
+            # Draw target arrow
+            angle = math.atan2(x_target_dist, y_target_dist)
+            target_arrow = [(width/2 + px * math.cos(angle) - py * math.sin(angle), height/2 + px * math.sin(angle) + py * math.cos(angle)) for px, py in target_arrow_base]
+            draw3.polygon(target_arrow, fill='green', outline ='black', width = round(2*res_scale))
+            # draw target text
+            target_text = f'{round(track_point["target_distance"]/1000)} km'
+            bbox = draw3.textbbox((0, 0), target_text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            tr = width*0.4
+            target_text_pos = (width/2 + tr*math.sin(angle) - text_width/2, width/2 - tr*math.cos(angle) - text_height/2)
+            draw3.text(target_text_pos, target_text, fill="white", font=font)
+
     cropped_image = cropped_image.convert("RGBA")
 
-
+    # Save memory for next iteration
     frame_memory['center_pilot_x'] = center_pilot_x
     frame_memory['center_pilot_y'] = center_pilot_y
     frame_memory['x_offsets'] = x_offsets
@@ -190,6 +218,7 @@ def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, tra
     frame_memory['y_pixels_max'] = y_pixels_max
     frame_memory['arrow'] = arrow
     frame_memory['center_radius'] = center_radius
+    frame_memory['target_arrow_base'] = target_arrow_base
 
     return cropped_image, path_images, frame_memory
 
@@ -229,9 +258,26 @@ if __name__ == "__main__":
         map_image = Image.open(f"media/map_stitched{k}.png").convert("RGB")
         map_images.append(map_image)
 
+    # Read minimap metadata
+    with open('minimap_metadata.csv', mode='r') as file:
+        reader = csv.reader(file)
+        map_metadata = [
+            [
+                float(row[0]),  # lon_min_tile
+                float(row[1]),  # lat_min_tile
+                float(row[2]),  # lon_max_tile
+                float(row[3]),  # lat_max_tile
+                int(row[4]),    # width
+                int(row[5]),    # height
+                float(row[6]),  # m_px
+                float(row[7]),  # x_target
+                float(row[8])   # y_target
+            ]
+            for row in reader
+        ]
     # make up rest of data
     width = 250
-    m_px = 16
+    #m_px = 16
     res_scale = 1 # for 1080p
 
     # Initiallize
@@ -239,16 +285,18 @@ if __name__ == "__main__":
     path_images = map_images
     frame_memory = initialize_minimap(track_points[0], no_maps, res_scale, width)
 
-    i_max = 1000
-
+    i_max = 500
     i_max = min(i_max, len(track_points))
-    for i in range(0, i_max):
+    iters = 50
+    step_size = int(i_max/iters)
+
+    
+    for i in range(0, i_max, step_size):
         track_point = track_points[i]
-        if i > 0:
+        if i == 0:
             track_point_prev = track_point
-        else:
-            track_point_prev = track_points[i-1]
-        minimap_frame, path_images, frame_memory = make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, m_px, no_maps, res_scale, width)
+        minimap_frame, path_images, frame_memory = make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, map_metadata, res_scale, width)
+        track_point_prev = track_point
 
     minimap_frame.save("media/minimap_test.png")
     

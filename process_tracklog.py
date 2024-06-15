@@ -10,7 +10,7 @@ from processing_utils import parse_gpx, parse_igc, parse_tcx
 from processing_utils import smooth_data, smooth_angles
 
 
-def process_tracklog(file_path, dt, speedup):
+def process_tracklog(file_path, dt, speedup, target_coords):
     # Find file type
     _, file_extension = os.path.splitext(file_path)
     file_type = file_extension[1:].lower()
@@ -121,7 +121,14 @@ def process_tracklog(file_path, dt, speedup):
         # Find straight line distances
         y_distance = (track_points_temp[0][1] - lat) / 180 * math.pi * radius
         x_distance = (lon - track_points_temp[0][2]) / 180 * math.pi * math.cos(lat/180*math.pi) * radius
-        sl_distance = math.sqrt(y_distance*y_distance + x_distance*x_distance)
+        sl_distance = math.sqrt(y_distance**2 + x_distance**2)
+
+        # Find distance to target
+        target_distance = None
+        if target_coords != None:
+            y_distance = (target_coords[0] - lat) / 180 * math.pi * radius
+            x_distance = (lon - target_coords[1]) / 180 * math.pi * math.cos(lat/180*math.pi) * radius
+            target_distance = int(math.sqrt(y_distance**2 + x_distance**2))
 
         # append values to new array
         track_point = {
@@ -133,13 +140,14 @@ def process_tracklog(file_path, dt, speedup):
             "direction": phi,
             "distance": dist,
             "vario": vario,
-            "sl_distance": sl_distance
+            "sl_distance": sl_distance, 
+            "target_distance": target_distance
         }
         track_points.append(track_point)
 
         # Increment the "current time" by the frame duration
         current_time += timedelta(seconds=dt)
-    
+
     # Find 3pt distances
     track_points = collect_3tp_distances(track_points, dt)
 

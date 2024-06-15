@@ -1,5 +1,5 @@
 import requests
-from PIL import Image
+from PIL import ImageDraw, ImageFont, Image
 from io import BytesIO
 import math
 import os
@@ -7,6 +7,9 @@ import time
 from hashlib import md5
 from dotenv import load_dotenv
 import sys
+import csv
+from datetime import datetime
+import json
 
 # Add a cache directory if it doesn't exist
 if not os.path.exists('tile_cache'):
@@ -57,7 +60,7 @@ def lat_lon_to_tile_coords(lat_deg, lon_deg, zoom):
     return int(x_tile), int(y_tile)
 
 
-def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
+def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points, target_coords):
     scale = overlay_width / anim_pixels
     lat_min = track_metadata['min_latitude']
     lat_max = track_metadata['max_latitude']
@@ -82,7 +85,6 @@ def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
 
     # Make list of needed tiles
     tile_list = []
-    map_images = []
     for zoom in range(zoom_max, zoom_min - 1, -1):
         # List first 9 tiles
         x_tile, y_tile = lat_lon_to_tile_coords(track_points[0]["lat"], track_points[0]["lon"], zoom)
@@ -121,7 +123,8 @@ def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
     else:
         print("All tiles are stored in cache. Stitching images...")
     
-    # Downloading maps
+    # Stitching maps
+    map_images = []
     map_metadata = []
     for zoom in range(zoom_max, zoom_min - 1, -1):
         i = zoom_max - zoom
@@ -132,41 +135,120 @@ def get_map(track_metadata, anim_pixels, overlay_width, anim_km, track_points):
         num_tiles_y = y_max - y_min + 3
         width, height = num_tiles_x * cell_size, num_tiles_y * cell_size
         map_images.append(Image.new('RGB', (width, height)))
-        #map_images[i] = Image.new('RGB', (width, height))
         for point in tile_list:
             if point[2] == zoom:
                 x, y, zoom = point
                 tile_img = get_tile_image_mapbox(x, y, zoom)
                 if tile_img is not None:  # Pasting
                     map_images[i].paste(tile_img, ((x - x_min + 1) * cell_size, (y - y_min + 1) * cell_size))
-        # Save the stitched map image
+        # Some stuff
         width = round(map_images[i].size[0] * scale)
         height = round(map_images[i].size[1] * scale)
         new_size = (width, height)
         map_images[i] = map_images[i].resize(new_size, Image.Resampling.LANCZOS)
-        map_images[i].save(f'media/map_stitched{i}.png')
-    
+
+        
         # Calculate map_metadata
         m_px = 2*math.pi/(2**zoom)/cell_size/scale*radius*math.cos((lat_max+lat_min)/2/180*math.pi) # Mercator imprecise
-        
         lon_min_tile = (x_min - 1) * 360 / 2.0**zoom - 180
         lon_max_tile = (x_max + 2) * 360 / 2.0**zoom - 180
         lat_max_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_min - 1) / 2.0**zoom))) - math.pi / 4)
         lat_min_tile = 360 / math.pi * (math.atan(math.exp(math.pi * (1 - 2 * (y_max + 2) / 2.0**zoom))) - math.pi / 4)
-        map_metadata.append([lon_min_tile, lat_min_tile, lon_max_tile, lat_max_tile, width, height, m_px])
-    
+
+        # Draw target on map
+        target_radius_km = 400
+        if target_coords != None:
+            # Find pixel points
+            x_target = (target_coords[1] - lon_min_tile)/(lon_max_tile - lon_min_tile) * width
+            
+            yp = math.log(math.tan(math.pi/4 + target_coords[0]/360*math.pi))
+            y_bottom = math.log(math.tan(math.pi/4 + lat_min_tile/360*math.pi))
+            y_top = math.log(math.tan(math.pi/4 + lat_max_tile/360*math.pi))
+            y_target = (y_top - yp)/(y_top - y_bottom) * height
+
+            # make transparent overlay
+            map_images[i] = map_images[i].convert("RGBA")
+            trans_image = Image.new('RGBA', (width, height))
+            draw = ImageDraw.Draw(trans_image)
+            target_radius = target_radius_km / m_px
+            target_radius = max(target_radius, 10*scale)
+            target_pos = [x_target-target_radius, y_target-target_radius, x_target+target_radius, y_target+target_radius]
+            draw.ellipse(target_pos, fill=(0,128,0,100), outline ='white')
+
+            combined = Image.alpha_composite(map_images[i], trans_image)
+            map_images[i] = combined
+            map_images[i] = map_images[i].convert("RGB")
+        else:
+            x_target = None
+            y_target = None
+
+        map_metadata.append([lon_min_tile, lat_min_tile, lon_max_tile, lat_max_tile, width, height, m_px, x_target, y_target])
+
+        # Save map
+        map_images[i].save(f'media/map_stitched{i}.png')
+
     print("Saved maps")
 
-    import csv # For testing with animate_path2
+    # Save metadata
     with open('minimap_metadata.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(map_metadata)
 
-    #map_img = map_images[0] # Remove later
-    #map_metadata = map_metadata[0]
 
     return(map_images, map_metadata)
 
+
+
+
+# Testing purposes:
+if __name__ == "__main__":
+    filename = 'track_points.csv'
+    # read track points
+    track_points = []
+    datetime_fields = ['local_time', 'timestamp']
+    with open(filename, 'r', newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            for key, value in row.items():
+                try:
+                    # Try converting to float if possible
+                    row[key] = float(value)
+                except ValueError:
+                    # Check if it's a datetime field and convert
+                    if key in datetime_fields:
+                        row[key] = datetime.fromisoformat(value)
+                    else:
+                        # If conversion fails, check if it's a JSON string
+                        try:
+                            row[key] = json.loads(value)
+                        except json.JSONDecodeError:
+                            # If it's not JSON, leave it as the original string
+                            pass
+            track_points.append(row)
+
+    # Find track metadata
+    track_metadata = {
+        'max_latitude': -float('inf'),
+        'min_latitude': float('inf'),
+        'max_longitude': -float('inf'),
+        'min_longitude': float('inf'),
+        'dt': 1, # dummy, not used
+    }
+    for i in range(0, len(track_points)):
+        lat = track_points[i]['lat']
+        lon = track_points[i]['lon']
+        track_metadata['max_latitude'] = max(track_metadata['max_latitude'], lat)
+        track_metadata['min_latitude'] = min(track_metadata['min_latitude'], lat)
+        track_metadata['max_longitude'] = max(track_metadata['max_longitude'], lon)
+        track_metadata['min_longitude'] = min(track_metadata['min_longitude'], lon)
+
+    # make up rest of data
+    width = round(1080 / 9 * 16 * 14 / 100)
+    anim_km = 4 # Should be 16
+    target_coords = [28.101484, -16.750003]
+
+    get_map(track_metadata, width, width, anim_km, track_points, target_coords)
+    
 
 
 

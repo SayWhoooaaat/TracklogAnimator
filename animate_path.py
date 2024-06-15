@@ -21,7 +21,6 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, wid
     # Initialize minimap-maker
     no_maps = len(map_images)
     no_points =len(track_points)
-    m_px = map_metadata[0][6]
     path_images = [img.copy() for img in map_images]
     frame_memory = initialize_minimap(track_points[0], no_maps, res_scale, width)
 
@@ -56,7 +55,7 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, wid
         if i == 0:
             track_point_prev = track_point
         # Get minimap frame
-        minimap_frame, path_images, frame_memory = make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, m_px, no_maps, res_scale, width)
+        minimap_frame, path_images, frame_memory = make_minimap_frame(frame_memory, path_images, i, no_points, track_point, track_point_prev, map_metadata, res_scale, width)
         track_point_prev = track_point
         position_minimap = (0, animation_frame.size[1] - minimap_frame.size[1])
         animation_frame.paste(minimap_frame, position_minimap, minimap_frame)
@@ -201,8 +200,23 @@ if __name__ == "__main__":
     goal_type = '3tp_distance'
     goal_text_reference = 'PB: 22 km'
 
-    map_metadata = []
-    map_metadata.append([0, 0, 0, 0, 0, 0, 16])
+    # Read minimap metadata
+    with open('minimap_metadata.csv', mode='r') as file:
+        reader = csv.reader(file)
+        map_metadata = [
+            [
+                float(row[0]),  # lon_min_tile
+                float(row[1]),  # lat_min_tile
+                float(row[2]),  # lon_max_tile
+                float(row[3]),  # lat_max_tile
+                int(row[4]),    # width
+                int(row[5]),    # height
+                float(row[6]),  # m_px
+                float(row[7]),  # x_target
+                float(row[8])   # y_target
+            ]
+            for row in reader
+        ]
 
     animate_path(track_points, map_images, map_metadata, outline_image_static, fps, overlay_width, anim_height, transparent, goal_type, goal_text_reference)
 

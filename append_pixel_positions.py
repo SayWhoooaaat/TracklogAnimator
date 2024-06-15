@@ -22,7 +22,7 @@ def append_pixel_positions(track_points, map_metadata, outline_metadata):
         # Mini-map
         track_points[i]["map_coordinate"] = []
         for metadata_zoom in map_metadata:
-            lon_min, lat_min, lon_max, lat_max, width, height, m_px = metadata_zoom
+            lon_min, lat_min, lon_max, lat_max, width, height, *_ = metadata_zoom
 
             x_pixels = (lon - lon_min)/(lon_max - lon_min) * width
             
