@@ -4,12 +4,12 @@ speedup = 60 # Should be 24
 fps = 30 # Should be 59.94
 anim_height = 1080
 overlay_width_percentage = 14 # Should be 14
-minimap_km = 4 # Should be 16? (before i liked 4)
+minimap_km = 8 # Should be 16? (before i liked 4)
 map_scale = 1.0
 transparent = False # Should be True
 goal_type = 'open_distance' # open_distace, 3tp_distance, declared
 goal_text_refefrence = 'PB: 9 km'
-target_coords = None # None, [28.101484, -16.750003]
+target_coords = [28.101484, -16.750003] # None, [28.101484, -16.750003]
 
 
 overlay_width = round(anim_height / 9 * 16 * overlay_width_percentage / 100)

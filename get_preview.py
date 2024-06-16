@@ -166,15 +166,8 @@ if __name__ == "__main__":
         reader = csv.reader(file)
         map_metadata = [
             [
-                float(row[0]),  # lon_min_tile
-                float(row[1]),  # lat_min_tile
-                float(row[2]),  # lon_max_tile
-                float(row[3]),  # lat_max_tile
-                int(row[4]),    # width
-                int(row[5]),    # height
-                float(row[6]),  # m_px
-                float(row[7]),  # x_target
-                float(row[8])   # y_target
+                None if item == '' else (float(item) if item.replace('.', '', 1).isdigit() else item)
+                for item in row
             ]
             for row in reader
         ]

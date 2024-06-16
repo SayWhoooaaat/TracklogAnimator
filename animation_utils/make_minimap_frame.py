@@ -47,7 +47,7 @@ def initialize_minimap(track_point, no_maps, res_scale, width):
     center_factor = 0.3
     center_radius = center_factor / 2 * width
 
-    target_arrow_base = [(-1,6), (1,6), (1,3), (2,3), (0,0), (-2,3), (-1,3)]
+    target_arrow_base = [(-1,5), (1,5), (1,3), (2,3), (0,0), (-2,3), (-1,3)]
     target_arrow_base = [(px*7, -width*0.49 + py*4) for px, py in target_arrow_base]
 
     frame_memory = {
@@ -198,12 +198,13 @@ def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, tra
             draw3.polygon(target_arrow, fill='green', outline ='black', width = round(2*res_scale))
             # draw target text
             target_text = f'{round(track_point["target_distance"]/1000)} km'
+            font = ImageFont.truetype("arial.ttf", size=round(18*res_scale))
             bbox = draw3.textbbox((0, 0), target_text, font=font)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
-            tr = width*0.4
+            tr = width*0.37
             target_text_pos = (width/2 + tr*math.sin(angle) - text_width/2, width/2 - tr*math.cos(angle) - text_height/2)
-            draw3.text(target_text_pos, target_text, fill="white", font=font)
+            draw3.text(target_text_pos, target_text, font=font, fill='green', stroke_width=2, stroke_fill='black')
 
     cropped_image = cropped_image.convert("RGBA")
 
@@ -223,7 +224,7 @@ def make_minimap_frame(frame_memory, path_images, i, no_points, track_point, tra
     return cropped_image, path_images, frame_memory
 
 
-
+    
 # Testing purposes:
 if __name__ == "__main__":
     filename = 'track_points.csv'
@@ -263,15 +264,8 @@ if __name__ == "__main__":
         reader = csv.reader(file)
         map_metadata = [
             [
-                float(row[0]),  # lon_min_tile
-                float(row[1]),  # lat_min_tile
-                float(row[2]),  # lon_max_tile
-                float(row[3]),  # lat_max_tile
-                int(row[4]),    # width
-                int(row[5]),    # height
-                float(row[6]),  # m_px
-                float(row[7]),  # x_target
-                float(row[8])   # y_target
+                None if item == '' else (float(item) if item.replace('.', '', 1).isdigit() else item)
+                for item in row
             ]
             for row in reader
         ]
