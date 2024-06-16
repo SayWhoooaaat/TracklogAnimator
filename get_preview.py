@@ -7,6 +7,7 @@ from datetime import datetime
 from animation_utils import make_altibar_frame
 from animation_utils import initialize_minimap
 from animation_utils import make_minimap_frame
+from animation_utils import make_goal_field
 
 def get_ruler_km(map_km):
     ruler_0 = map_km / 2
@@ -100,14 +101,10 @@ def get_preview(track_points, map_images, map_metadata, outline_image_static, wi
     animation_frame.paste(altibar_image, (0,altibar_y), altibar_image)
 
     # Draw goal
-    textsize = round(18*res_scale)
-    font = ImageFont.truetype("arial.ttf", textsize)
-    if goal_type == '3tp_distance': # 3tp-distance
-        goal_text = f"Distance (3tp): {round(distance_3tp/1000)} km\n{goal_text_reference}"
-    elif goal_type == 'open_distance': # open distance
-        goal_text = f"Open distance: {round(open_distance/1000)} km\n{goal_text_reference}"
-    
-    draw6.text((8*res_scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
+    goal_height = round(60*res_scale)
+    goal_field_y = position_minimap[1] - goal_height
+    goal_field_frame = make_goal_field(goal_type, track_point, width, goal_height, res_scale, goal_text_reference)
+    animation_frame.paste(goal_field_frame, (0,goal_field_y), goal_field_frame)
     
     # Paste animation frame as an overlay
     base_image = Image.open("media/preview_background.png").convert("RGBA")
@@ -158,7 +155,7 @@ if __name__ == "__main__":
 
     overlay_width = 250
     anim_height = 1080
-    goal_type = '3tp_distance'
+    goal_type = 'declared_goal'
     goal_text_reference = 'PB: 22 km'
 
     # Read minimap metadata

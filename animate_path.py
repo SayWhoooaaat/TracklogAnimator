@@ -10,6 +10,7 @@ import json
 from animation_utils import make_altibar_frame
 from animation_utils import make_minimap_frame
 from animation_utils import initialize_minimap
+from animation_utils import make_goal_field
 
 
 def animate_path(track_points, map_images, map_metadata, outline_image, fps, width, anim_height, transparent, goal_type, goal_text_reference):
@@ -99,14 +100,11 @@ def animate_path(track_points, map_images, map_metadata, outline_image, fps, wid
         draw6.text((38*res_scale,76*res_scale), current_date, font=ImageFont.truetype("arial.ttf", round(16*res_scale)), fill='white')
 
         # Draw goal
-        textsize = round(18*res_scale)
-        font = ImageFont.truetype("arial.ttf", textsize)
-        if goal_type == '3tp_distance': # 3tp-distance
-            goal_text = f"Distance (3tp): {round(distance_3tp/1000)} km\n{goal_text_reference}"
-        elif goal_type == 'open_distance': # open distance
-            goal_text = f"Open distance: {round(open_distance/1000)} km\n{goal_text_reference}"
-        
-        draw6.text((8*res_scale, position_minimap[1] - anim_height*0.05), goal_text, font=font, fill='white', stroke_width=1, stroke_fill='black')
+        goal_height = round(60*res_scale)
+        goal_field_y = position_minimap[1] - goal_height
+        goal_field_frame = make_goal_field(goal_type, track_point, width, goal_height, res_scale, goal_text_reference)
+        animation_frame.paste(goal_field_frame, (0,goal_field_y), goal_field_frame)
+
 
         # STEP 6: SAVE FRAME
         frame_path = os.path.join(temp_folder, f'frame_{i:06d}.png')
@@ -197,7 +195,7 @@ if __name__ == "__main__":
     overlay_width = 250
     fps = 30
     transparent = False
-    goal_type = '3tp_distance'
+    goal_type = 'declared_goal'
     goal_text_reference = 'PB: 22 km'
 
     # Read minimap metadata
